@@ -1,0 +1,38 @@
+---
+name: context-cue
+description: Build a context cue — a Claude Code hook that injects one piece of guidance into the agent's context the first time a session performs a given kind of work, then stays silent for the rest of that session. Use when a rule written in CLAUDE.md would have faded by the time the work starts, when a path-scoped `.claude/rules` file would miss it because the session reads and edits through Bash, when a per-edit hook would be noise, or to add guidance to a third-party skill without editing it; also when asked for a just-in-time or once-per-session reminder.
+---
+
+# Context cue
+
+A **context cue** is guidance that reaches the agent *when the work it governs begins*: not at session start, where it competes with everything else and fades before it is needed, and not on every edit, where it becomes noise. It is a hook with three parts: a cheap **trigger** on tool input, a per-session **marker** so it fires once, and the **cue text** emitted as `additionalContext`.
+
+Installed cues live in `~/.claude/context-cues/`: each cue is a hook script `<name>.sh` beside its text `<name>.cue.md`, with the shared helpers `rearm.sh` and `command-position.sh` in the same folder.
+
+**Hook on the act, not on the skill.** A cue about a tool that a skill teaches could fire when the `Skill` tool loads that skill, but agents often run the tool without loading the skill (in the author's sessions, one CLI ran without its skill in 12 of 22 sessions), and a skill invoked as a slash command bypasses the `Skill` tool entirely. A cue about *doing* something watches the doing. The same property lets a cue extend a third-party skill: the guidance lives in the cue, so the skill's own files stay untouched and its updates pull cleanly.
+
+It is a hook, not a `.claude/rules` file: a path-scoped rule attaches when the Read tool opens a matching file, so a session that reads with `cat` and writes with heredocs never sees it ([trigger-design.md](trigger-design.md)), and a file under `~/.claude/rules/` with no `paths:` loads on every session. Keep the cue text in a plain file outside that directory, beside the hook.
+
+## Placement
+
+Guidance reaches the agent one of three ways, and the axis is whether its relevance survives the distance from where it loads: `CLAUDE.md` is always present and fades as the session grows; a skill loads on a trigger, so it arrives already relevant; a hook fires at the tool call, where it neither fades nor can be reasoned away.
+
+Keep a rule in `CLAUDE.md` when it holds for most of the work in the tree, or when the act that needs it leaves no clean signature to match. A high base rate pays for the always-on cost, and a weak trigger misfires. A rule about handling a repo's core data, in a repo where most work touches that data, stays in `CLAUDE.md` on both counts.
+
+A context cue earns its place on the opposite profile: narrow scope, crisp trigger, and a real cost to the agent missing it.
+
+## Steps
+
+1. **Write the cue text** in `<name>.cue.md`. One short paragraph: the target behaviour, stated positively, and where fuller material lives. Done when the text reads as a standing rule, not as a complaint about one edit.
+2. **Choose the triggers.** For a cue on writing files, two regexes: a *path* gate (`\.tsx?([^[:alnum:]._-]|$)`, `(^|/)migrations/`) anchored to the end of a path token, and an *act* trigger that names what the cue governs (`(^|[^:])//|/\*` for comment-writing, `CREATE TABLE` for schema work). Apply both to **what the call names and adds** (`file_path`, `edits[].file_path`, `new_string`, `content`, `command`), never to the raw payload (`tool_response` satisfies it for reads) and never to `old_string` (removing the thing would fire the cue). For `Bash`, require the path to be a *write* target: a redirect, `tee`, or in-place `sed`/`perl`. For a cue on *running a command*, there is no path gate: gate the command's name at command position with `cue_command_re` from `command-position.sh`, so a command that only spells the name stays silent. Done when the act trigger names the act, not the file type. [trigger-design.md](trigger-design.md) has the five ways this goes wrong.
+3. **Write the hook.** A file-write cue starts from [`template.sh`](template.sh); a command cue starts from `examples/tvly-search/tvly-search.sh` in this project. Order of operations is the whole cost story: grep the raw payload as a *reject-only* prefilter (microseconds; a pattern absent from the whole payload cannot be in `tool_input`, but its presence proves nothing), then `test -e` the marker, and only then run `jq` for the authoritative gates and emit. The marker lives at `${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/context-cues/<session_id>/<cue-name>`. Use only bash, `jq`, and portable `grep -E` (no `\b`, no `\w`, no `-P`). Done when the hook is a shell script with no Python and no file scan.
+4. **Register it** in `~/.claude/settings.json` under `PostToolUse` with the tool matcher and a short timeout, and register `rearm.sh` once under `SessionStart`, so `compact` and `clear`, the two moments injected context is lost, re-arm every cue. PostToolUse is the event because PreToolUse cannot add context. Installing a hook is a config change the user approves; when the edit is denied, hand back the exact JSON entries and stop rather than retry or route around it. Confirm an edit that went through by reading the block back.
+5. **Prove it fires once, with a matrix, not one payload.** Every misfire in [trigger-design.md](trigger-design.md) passes a single happy-path test. Add the cue to a matrix modelled on `tests/file-cue-test.sh` or `tests/command-cue-test.sh` in this project: each case its own `session_id`, and `XDG_RUNTIME_DIR` redirected so stale markers cannot mask a failure. Cover the same `session_id` twice (the first run emits JSON, the second nothing), a payload that only reads a matching file (nothing), and a `compact` payload through `rearm.sh` followed by the first payload (emits again). Then the real check: in a fresh session, perform the act through Bash and confirm the cue appears as a system reminder (`claude --debug` logs hook output). Done when both are observed, not reasoned about.
+
+## Reference
+
+- **Payload fields** (`code.claude.com/docs/en/hooks.md`): every event carries `session_id`; `SessionStart` carries `source` ∈ `startup|resume|clear|compact|fork`; `additionalContext` is honoured on `PostToolUse`, `UserPromptSubmit`, `SessionStart`, `SubagentStart`, `Stop`, not `PreToolUse`.
+- **Matchers** filter on tool *name* only (exact or unanchored regex). Any predicate on tool *arguments* has to live in the script, hence grep first.
+- **Subagents** share the parent's `session_id` but not its context. A cue fired in the parent never reaches a subagent, and the marker keeps it from firing there; `SubagentStart` is the event to deliver it to subagents if that matters.
+- **Output cap** is 10,000 characters per hook; longer text is spilled to a file and replaced by a 2 KB preview. A cue that needs more keeps its text in a doc and injects a pointer to read it.
+- **Windows.** Hooks run in Git Bash when Git for Windows is installed, and cannot run these scripts without it. Commands the agent runs through the PowerShell tool reach hooks as `tool_name: "PowerShell"`; match `Bash|PowerShell` for a command cue that should see them, knowing `cue_command_re` assumes bash syntax.

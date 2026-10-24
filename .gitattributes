@@ -1,0 +1,2 @@
+# Bash fails on CRLF line endings, so keep LF on every checkout, Windows included.
+* text=auto eol=lf
