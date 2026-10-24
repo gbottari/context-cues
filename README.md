@@ -89,8 +89,10 @@ A file-write cue such as `examples/typescript-comments` uses the matcher
 
 Ask Claude Code for one, for example: "make a context cue that reminds you how we name
 migrations, the first time you write one." The `context-cue` skill walks the agent
-through it: write the text, choose the triggers, build the hook from `template.sh`,
-register it, and prove it with a test matrix.
+through it: write the text, choose the triggers, build the hook from one of its two
+templates (`file-cue-template.sh`, `command-cue-template.sh`), register it, and prove it
+with a test matrix built on the skill's `cue-test.sh`. All three files install with the
+skill, so the agent has them without this repository.
 
 The hard part is the trigger. A cue gets one shot per session, and every wrong trigger
 spends that shot on the wrong call without any error.
@@ -111,7 +113,8 @@ bash tests/run.sh
 ```
 
 The tests copy the hooks and examples into a temporary folder laid out like
-`~/.claude/context-cues`, then run each cue against a matrix of payloads. Each payload is
+`~/.claude/context-cues`, then run each cue against a matrix of payloads, using the same
+`cue-test.sh` helpers the skill gives to agents. Each payload is
 marked to fire or to stay silent, and each case is one of the traps in
 `trigger-design.md`. The matrix also covers once-per-session behaviour and re-arming.
 

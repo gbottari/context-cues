@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PostToolUse hook: inject a comment-style cue the first time a session writes a comment
-# into a .ts or .tsx file. Built from skills/context-cue/template.sh.
+# into a .ts or .tsx file. Built from skills/context-cue/file-cue-template.sh.
 # Register on `Edit|Write|MultiEdit|NotebookEdit|Bash`; rearm.sh re-arms it on compact and clear.
 set -u
 CUE_NAME="typescript-comments"

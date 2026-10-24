@@ -4,8 +4,8 @@ A context cue gets **one shot per session**. Every way a trigger can be wrong re
 spending that shot on the wrong tool call, and all of them fail silently: the marker is
 set, the cue looks like it fired, and the work it governs happens unguided.
 
-Worked example throughout: `examples/typescript-comments`, a cue that injects a
-comment-style rule the first time a session writes a comment into a `.ts`/`.tsx` file.
+Worked example throughout: the TypeScript-comments cue in this project's examples, which
+injects a comment-style rule the first time a session writes a comment into a `.ts`/`.tsx` file.
 Its first version shipped with three of the first four traps below and went months
 without visibly working.
 
@@ -67,8 +67,7 @@ before its tool ran.
 Gate the name at **command position**: the start of a line, after `;` `&` `|`, inside
 `$(` or backticks, or the string given to `sh -c`, with `VAR=value` assignments and
 wrapper words (`time`, `env`, `timeout 30`) allowed before it. `command-position.sh`
-builds that regex, and `examples/tvly-search/tvly-search.sh` is the shortest hook that
-uses it:
+builds that regex, and `command-cue-template.sh` is a complete hook that uses it:
 
 ```bash
 . "$HERE/command-position.sh"
@@ -81,11 +80,11 @@ Source it after the prefilter and the marker check, so an unrelated call never r
 Two mentions still fire, because a regex cannot see quoting: text after `;` inside
 quotes, and a heredoc body line that starts with the command. The hook handler's `if`
 field does parse quoting, and stays out all the same: it drops a run behind `time`,
-`env` or `pnpm exec`, and it cannot see a redirect target. [`docs/performance.md`](../../docs/performance.md)
-has the measurements.
+`env` or `pnpm exec`, and it cannot see a redirect target. Leaving it out costs about
+4 ms per call.
 
-`tests/command-cue-test.sh` drives one fired-or-silent matrix over every command cue.
-A new command cue adds its `matrix` line there.
+`command_matrix` in `cue-test.sh` drives one fired-or-silent matrix over a command cue:
+one line per cue.
 
 ## Path regexes
 
@@ -102,19 +101,19 @@ The same goes for a command word: write `(^|[^[:alnum:]_-])tee[[:space:]]`, not 
 
 Firing once on a happy-path payload proves almost nothing; every trap above passes that
 test. Drive a table of payloads and assert fired or silent both ways, one case per trap.
-`tests/file-cue-test.sh` is that table for the TypeScript example:
+With `check` from `cue-test.sh`, a few rows of that table for the TypeScript cue:
 
 ```bash
-check FIRED  $H "add a comment to foo.ts"        '{"session_id":"a1","tool_name":"Edit","tool_input":{"file_path":"/p/foo.ts","old_string":"const a=1","new_string":"// why\nconst a=1"}}'
-check silent $H "DELETE a comment"               '{"session_id":"b2","tool_name":"Edit","tool_input":{"file_path":"/p/foo.ts","old_string":"// stale\nconst a=1","new_string":"const a=1"}}'
-check silent $H "grep -rn // src"                '{"session_id":"b4","tool_name":"Bash","tool_input":{"command":"grep -rn \"//\" src/"},"tool_response":{"stdout":"src/foo.ts:12: // x\n"}}'
+check FIRED  "$H" "add a comment to foo.ts"        '{"session_id":"a1","tool_name":"Edit","tool_input":{"file_path":"/p/foo.ts","old_string":"const a=1","new_string":"// why\nconst a=1"}}'
+check silent "$H" "DELETE a comment"               '{"session_id":"b2","tool_name":"Edit","tool_input":{"file_path":"/p/foo.ts","old_string":"// stale\nconst a=1","new_string":"const a=1"}}'
+check silent "$H" "grep -rn // src"                '{"session_id":"b4","tool_name":"Bash","tool_input":{"command":"grep -rn \"//\" src/"},"tool_response":{"stdout":"src/foo.ts:12: // x\n"}}'
 ```
 
 Each `session_id` is distinct so one marker cannot mask a later case, and
-`tests/lib.sh` redirects `XDG_RUNTIME_DIR` so markers do not survive between runs.
+`cue-test.sh` redirects `XDG_RUNTIME_DIR` so markers do not survive between runs.
 Without that, the second run of the matrix reports every FIRED case as silent. Re-run one
 `session_id` twice to check the once-per-session marker, and pipe a `{"source":"compact"}`
-payload through `rearm.sh` to check re-arming.
+payload through `rearm.sh` (`rearm_check` does both) to check re-arming.
 
 Check that the matrix can fail, too: break the hook on purpose (match the name anywhere,
 drop the novelty check) and watch the cases go red.
