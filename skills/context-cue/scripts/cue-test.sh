@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # Fired-or-silent test helpers for context cues. Source it from a test script:
 #
-#   . ~/.claude/skills/context-cue/cue-test.sh
+#   . ~/.claude/skills/context-cue/scripts/cue-test.sh
 #   C=~/.claude/context-cues
 #   check FIRED  "$C/my-cue.sh" "adds a comment" '{"session_id":"a1","tool_name":"Edit",...}'
 #   check silent "$C/my-cue.sh" "deletes one"    '{"session_id":"b1","tool_name":"Edit",...}'

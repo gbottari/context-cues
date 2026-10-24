@@ -2,7 +2,7 @@
 # A file-write cue fires when a call adds the governed text to a governed file, by any
 # tool, and stays silent for every near miss: reading the file, deleting the text, an
 # edit next to text that was already there, a lookalike path. Each case is one of the
-# traps in skills/context-cue/trigger-design.md.
+# traps in skills/context-cue/references/trigger-design.md.
 set -u
 # shellcheck source=tests/lib.sh
 . "$(dirname "$0")/lib.sh"

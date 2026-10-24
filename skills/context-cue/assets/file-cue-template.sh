@@ -2,11 +2,11 @@
 # PostToolUse hook: inject CUE_FILE once per session, the first time a tool call performs
 # the act the cue governs. Register on `Edit|Write|MultiEdit|NotebookEdit|Bash`.
 # Pair with rearm.sh on SessionStart so compaction and /clear re-arm it.
-# See trigger-design.md for the five ways a trigger misfires, and cue-test.sh for a matrix.
+# See references/trigger-design.md for the five ways a trigger misfires, and scripts/cue-test.sh for a matrix.
 #
 # This template is a file-write cue: it fires when a call adds text matching ACT_RE to a
 # file matching PATH_RE. For a cue on running a command, start from
-# command-cue-template.sh instead.
+# assets/command-cue-template.sh instead.
 set -u
 CUE_NAME="my-cue"                                     # one marker per cue
 case ${BASH_SOURCE[0]} in */*) HERE=${BASH_SOURCE[0]%/*} ;; *) HERE=. ;; esac

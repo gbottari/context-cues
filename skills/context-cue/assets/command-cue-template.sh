@@ -2,7 +2,7 @@
 # PostToolUse hook: inject CUE_FILE once per session, the first time a Bash command runs
 # the command the cue governs. Register on `Bash` (or `Bash|PowerShell` on Windows).
 # Pair with rearm.sh on SessionStart so compaction and /clear re-arm it.
-# See trigger-design.md, trap 5, for why the name is matched at command position.
+# See references/trigger-design.md, trap 5, for why the name is matched at command position.
 #
 # Install beside command-position.sh, in ~/.claude/context-cues/.
 set -u

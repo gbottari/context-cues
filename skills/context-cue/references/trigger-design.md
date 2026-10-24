@@ -67,7 +67,7 @@ before its tool ran.
 Gate the name at **command position**: the start of a line, after `;` `&` `|`, inside
 `$(` or backticks, or the string given to `sh -c`, with `VAR=value` assignments and
 wrapper words (`time`, `env`, `timeout 30`) allowed before it. `command-position.sh`
-builds that regex, and `command-cue-template.sh` is a complete hook that uses it:
+builds that regex, and `assets/command-cue-template.sh` is a complete hook that uses it:
 
 ```bash
 . "$HERE/command-position.sh"
@@ -83,7 +83,7 @@ field does parse quoting, and stays out all the same: it drops a run behind `tim
 `env` or `pnpm exec`, and it cannot see a redirect target. Leaving it out costs about
 4 ms per call.
 
-`command_matrix` in `cue-test.sh` drives one fired-or-silent matrix over a command cue:
+`command_matrix` in `scripts/cue-test.sh` drives one fired-or-silent matrix over a command cue:
 one line per cue.
 
 ## Path regexes
@@ -101,7 +101,7 @@ The same goes for a command word: write `(^|[^[:alnum:]_-])tee[[:space:]]`, not 
 
 Firing once on a happy-path payload proves almost nothing; every trap above passes that
 test. Drive a table of payloads and assert fired or silent both ways, one case per trap.
-With `check` from `cue-test.sh`, a few rows of that table for the TypeScript cue:
+With `check` from `scripts/cue-test.sh`, a few rows of that table for the TypeScript cue:
 
 ```bash
 check FIRED  "$H" "add a comment to foo.ts"        '{"session_id":"a1","tool_name":"Edit","tool_input":{"file_path":"/p/foo.ts","old_string":"const a=1","new_string":"// why\nconst a=1"}}'
@@ -110,7 +110,7 @@ check silent "$H" "grep -rn // src"                '{"session_id":"b4","tool_nam
 ```
 
 Each `session_id` is distinct so one marker cannot mask a later case, and
-`cue-test.sh` redirects `XDG_RUNTIME_DIR` so markers do not survive between runs.
+`scripts/cue-test.sh` redirects `XDG_RUNTIME_DIR` so markers do not survive between runs.
 Without that, the second run of the matrix reports every FIRED case as silent. Re-run one
 `session_id` twice to check the once-per-session marker, and pipe a `{"source":"compact"}`
 payload through `rearm.sh` (`rearm_check` does both) to check re-arming.

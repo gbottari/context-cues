@@ -96,7 +96,7 @@ skill, so the agent has them without this repository.
 
 The hard part is the trigger. A cue gets one shot per session, and every wrong trigger
 spends that shot on the wrong call without any error.
-[`skills/context-cue/trigger-design.md`](skills/context-cue/trigger-design.md) covers the
+[`skills/context-cue/references/trigger-design.md`](skills/context-cue/references/trigger-design.md) covers the
 five ways this happens.
 
 ## Examples
