@@ -23,3 +23,12 @@ jobs:
           grep --version | head -1 || true
       - name: Tests
         run: bash tests/run.sh
+
+  markdown:
+    # Every .md file keeps one line per paragraph (.prettierrc.json sets proseWrap: never).
+    # Fix locally with: npx prettier@3.9.10 --write '**/*.md'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prettier check
+        run: npx --yes prettier@3.9.10 --check '**/*.md'
