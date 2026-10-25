@@ -6,8 +6,9 @@ Context Cues are Claude Code hooks that inject one piece of guidance the first t
 
 | Path | Installed to | What it is |
 | --- | --- | --- |
-| `hooks/` | `~/.claude/context-cues/` | `rearm.sh` (SessionStart re-arm) and `command-position.sh` (sourced by command cues) |
-| `skills/context-cue/` | `~/.claude/skills/context-cue/` | The skill: `SKILL.md`, `scripts/cue-test.sh`, `references/trigger-design.md`, `assets/` hook templates |
+| `.claude-plugin/` | the plugin cache | `plugin.json` and `marketplace.json`: the repo root is both the marketplace and its one plugin |
+| `hooks/` | the plugin, or `~/.claude/context-cues/` by hand | `hooks.json` (registers `rearm.sh` for the plugin), `rearm.sh` (SessionStart re-arm), `command-position.sh` (copied beside each command cue) |
+| `skills/context-cue/` | the plugin, or `~/.claude/skills/context-cue/` by hand | The skill: `SKILL.md`, `scripts/cue-test.sh`, `references/trigger-design.md`, `assets/` hook templates |
 | `examples/` | `~/.claude/context-cues/`, optional | One folder per cue: `<name>.sh` beside `<name>.cue.md` |
 | `tests/` | not installed | Fired-or-silent matrices over the examples and the command template |
 | `docs/` | not installed | Measurements behind the README's cost claims |
@@ -20,4 +21,5 @@ Read `CONTRIBUTING.md` before changing a script, a cue, a test or a doc, and bef
 - **Develop against a scratch install.** Copy `hooks/` and `examples/` into a temporary folder and redirect `XDG_RUNTIME_DIR`, as `tests/lib.sh` does. The live `~/.claude` belongs to whoever runs the session, and an edit there changes their sessions.
 - **A trigger change is proven red, then green.** Break the trigger on purpose, watch its matrix go red, then restore it and watch it go green. A matrix that stays green on the broken version tests nothing.
 - **Cue text stays one short paragraph.** It lands mid-task; Claude Code cuts hook output past 10,000 characters to a preview.
+- **Check the plugin with `claude plugin validate .`** after touching `.claude-plugin/` or `hooks/hooks.json`; CI checks only that the files parse and the names match.
 - **Stage files by name** (`git add <path>...`) and commit one change at a time.

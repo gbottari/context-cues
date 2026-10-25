@@ -1,0 +1,15 @@
+{
+  "name": "context-cues",
+  "description": "The Context Cues plugin",
+  "owner": {
+    "name": "Giulio Bottari",
+    "url": "https://github.com/gbottari"
+  },
+  "plugins": [
+    {
+      "name": "context-cues",
+      "source": "./",
+      "description": "A skill for building once-per-session context cues, and the hook that re-arms them after /compact and /clear"
+    }
+  ]
+}

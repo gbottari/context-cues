@@ -32,3 +32,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Prettier check
         run: npx --yes prettier@3.9.10 --check '**/*.md'
+
+  plugin:
+    # The plugin files parse, and the marketplace entry names the same plugin as plugin.json,
+    # which an install by name needs. Run `claude plugin validate .` locally for the full check.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Plugin manifests
+        run: |
+          jq -e '.name and .version and .description' .claude-plugin/plugin.json
+          jq -e '.name and .owner.name and (.plugins | length > 0)' .claude-plugin/marketplace.json
+          test "$(jq -r .name .claude-plugin/plugin.json)" = "$(jq -r '.plugins[0].name' .claude-plugin/marketplace.json)"
+          jq -e '.hooks.SessionStart[0].hooks[0].command | contains("rearm.sh")' hooks/hooks.json

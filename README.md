@@ -45,32 +45,30 @@ Each cue is a `PostToolUse` hook. After every matching tool call, Claude Code ru
 
 Requirements: `bash`, `jq` 1.6 or later, and standard `grep`, `sed` and `sort`.
 
-```bash
-git clone https://github.com/gbottari/context-cues.git
-cd context-cues
-mkdir -p ~/.claude/context-cues ~/.claude/skills
-cp hooks/*.sh ~/.claude/context-cues/
-cp -R skills/context-cue ~/.claude/skills/
-cp examples/tvly-search/* ~/.claude/context-cues/    # optional: one example cue
+Install the plugin from inside Claude Code (2.1.275 or later):
+
+```
+/plugin install context-cues --marketplace gbottari/context-cues
 ```
 
-Then register the hooks in `~/.claude/settings.json`. `rearm.sh` is registered once; each cue gets its own `PostToolUse` entry:
+Or from your shell, in two steps:
+
+```bash
+claude plugin marketplace add gbottari/context-cues
+claude plugin install context-cues@context-cues
+```
+
+The plugin brings the `context-cue` skill and registers `rearm.sh` for you. Your own cues live in `~/.claude/context-cues/`, and each one gets its own `PostToolUse` entry in `~/.claude/settings.json`. The skill writes and registers them; to add the example cue by hand:
+
+```bash
+git clone https://github.com/gbottari/context-cues.git
+mkdir -p ~/.claude/context-cues
+cp context-cues/examples/tvly-search/* context-cues/hooks/command-position.sh ~/.claude/context-cues/
+```
 
 ```json
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "compact|clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/context-cues/rearm.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Bash",
@@ -88,6 +86,37 @@ Then register the hooks in `~/.claude/settings.json`. `rearm.sh` is registered o
 ```
 
 A file-write cue such as `examples/typescript-comments` uses the matcher `Edit|Write|MultiEdit|NotebookEdit|Bash`.
+
+### Without the plugin
+
+Copy the helpers and the skill, then register `rearm.sh` yourself next to your cues:
+
+```bash
+git clone https://github.com/gbottari/context-cues.git
+cd context-cues
+mkdir -p ~/.claude/context-cues ~/.claude/skills
+cp hooks/*.sh ~/.claude/context-cues/
+cp -R skills/context-cue ~/.claude/skills/
+```
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/context-cues/rearm.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
 ## Writing a cue
 
