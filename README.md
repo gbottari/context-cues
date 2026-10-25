@@ -120,6 +120,10 @@ No tokens until a cue fires. Seven cues on `Bash` added 17.5 ms per call on Linu
 
 The code and docs were written with [Claude Code](https://claude.com/claude-code), then reviewed and tested by the author. The cues come from daily use on the author's own machine.
 
+## Contributing
+
+Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the checks to run and the house rules.
+
 ## License
 
 [MIT](LICENSE)
