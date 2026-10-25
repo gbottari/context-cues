@@ -52,7 +52,7 @@ compacted or cleared, so every cue can fire once more.
 Requirements: `bash`, `jq` 1.6 or later, and standard `grep`, `sed` and `sort`.
 
 ```bash
-git clone <this repository> context-cues
+git clone https://github.com/gbottari/context-cues.git
 cd context-cues
 mkdir -p ~/.claude/context-cues ~/.claude/skills
 cp hooks/*.sh ~/.claude/context-cues/
@@ -120,12 +120,14 @@ marked to fire or to stay silent, and each case is one of the traps in
 
 ## Platforms
 
+CI runs the full test suite on Linux, macOS and Windows for every push.
+
 - **Linux:** used daily.
-- **macOS:** expected to work with the system bash 3.2. Install `jq` if your macOS
-  version lacks it (`brew install jq`). CI runs the tests on macOS.
-- **Windows:** needs Git for Windows, because Claude Code runs hooks in Git Bash when it
-  is installed and in PowerShell when it is not. Install `jq` separately
-  (`winget install jqlang.jq`). Commands the agent runs through the PowerShell tool
+- **macOS:** the tests pass with the system bash 3.2.57 and BSD grep. Install `jq` if
+  your macOS version lacks it (`brew install jq`).
+- **Windows:** the tests pass under the GitHub runner's bash. For real use, Claude Code
+  needs Git for Windows, because it runs hooks in Git Bash when Git Bash is installed and
+  in PowerShell when it is not. Install `jq` separately (`winget install jqlang.jq`). Commands the agent runs through the PowerShell tool
   reach hooks as `tool_name: "PowerShell"`, so a command cue that should see them needs
   the matcher `Bash|PowerShell`. The command-position check assumes bash syntax.
 - **WSL:** same as Linux.

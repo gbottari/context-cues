@@ -4,7 +4,8 @@ A context cue gets **one shot per session**. Every way a trigger can be wrong re
 spending that shot on the wrong tool call, and all of them fail silently: the marker is
 set, the cue looks like it fired, and the work it governs happens unguided.
 
-Worked example throughout: the TypeScript-comments cue in this project's examples, which
+Worked example throughout: the TypeScript-comments cue in the Context Cues repository
+(<https://github.com/gbottari/context-cues/tree/main/examples/typescript-comments>), which
 injects a comment-style rule the first time a session writes a comment into a `.ts`/`.tsx` file.
 Its first version shipped with three of the first four traps below and went months
 without visibly working.
