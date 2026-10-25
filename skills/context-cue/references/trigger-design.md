@@ -95,4 +95,10 @@ If a cue fires (verify with the matrix, then `claude --debug`) and behaviour sti
 
 ## Not the same as `.claude/rules`
 
-A path-scoped `.claude/rules` file attaches when the Read tool opens a matching file. An agent that reads with `cat` and writes through Bash never trips it, and Claude Code's auto mode tells agents to prefer Bash for exactly that work. That instruction comes from the permission mode, not from user config, so `CLAUDE.md` cannot override it. A hook matching `Bash` as well as `Edit|Write` works in every mode.
+A path-scoped `.claude/rules` file loads when Claude reads, writes or edits a matching file. Reads include a single-file view through Bash: `cat`, `head`, `tail`, `sed -n`, `grep` or `rg` on one file, with no pipes or redirects. That makes a rule the right home for a convention tied to a folder or file type, and the wrong one for a cue in three cases:
+
+- **The act is narrower than the file.** A rule about writing comments loads on the first read of any `.ts` file, which is trap 4 above: the shot is spent where there was nothing to guide.
+- **The act is running a command.** A command has no path to match.
+- **The write goes through Bash.** Claude Code's docs list the Read, Write and Edit tools and the single-file view commands as triggers; a redirect, heredoc or `sed -i` is not among them, and auto mode steers agents toward Bash for small edits.
+
+A hook matching `Bash` as well as `Edit|Write` sees all three.

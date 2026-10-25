@@ -10,11 +10,25 @@ There are three usual places to put guidance for a coding agent, and each one fa
 
 - **`CLAUDE.md` fades.** It loads at session start. By the time the work it governs comes up, a long session has buried it.
 - **A hook on every edit is noise.** The same reminder after every tool call gets ignored.
-- **Path-scoped `.claude/rules` files miss Bash.** They attach when the Read tool opens a matching file. An agent that reads with `cat` and writes through heredocs never sees them, and auto mode steers agents toward exactly that.
+- **Path-scoped `.claude/rules` files key on a path, not on the work.** A rule loads the first time Claude reads, writes or edits a matching file, so a plain read can bring it in long before the work it governs starts. Running a command has no path, so no rule can fire on it, and a write through a Bash redirect or heredoc is not among the triggers Claude Code's docs list.
 
 A cue fires once, right after the first tool call that does the work, while the work is still in front of the agent.
 
 Cues also extend skills you do not own. To add your own guidance to a third-party skill, write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly. `examples/tvly-search` does this for Tavily's search skill.
+
+## Compared with the built-in options
+
+|  | `CLAUDE.md` and unscoped rules | Path-scoped `.claude/rules` | Skill | Plain hook | Context cue |
+| --- | --- | --- | --- | --- | --- |
+| **Loads** | At session start | When Claude reads, writes or edits a matching file | When Claude judges it relevant to the prompt, or you type `/name` | After every matching tool call | After the first tool call that does the governed act |
+| **Keyed on** | Nothing: always present | A file path | The prompt, matched against the skill's description | A tool name | What the call adds or runs |
+| **Running a command** | — | Cannot fire: a command has no path | Only if Claude loads the skill before running it | Fires on every run | Fires on the first run |
+| **Work done through Bash** | — | Single-file views (`cat`, `head`, `grep` on one file) load it; redirects and heredocs are not listed | — | Sees it when matched on `Bash` | Sees writes and runs; ignores reads on purpose |
+| **Cost when the work never happens** | Its full text, every session | None | The description, in every session's skill listing | A process per matching call; tokens only when it prints | A process per matching call; no tokens |
+| **After `/compact`** | Re-injected from disk | Loads again on the next matching file | Body re-injected, capped at 5,000 tokens per skill | Earlier output summarized; the next call adds it again | Re-armed; fires again at the next act |
+| **Best for** | Rules that hold for most of the work | Conventions tied to a folder or file type | Long procedures followed step by step | Checking or blocking every call | One short reminder at the moment an act begins |
+
+Sources: Claude Code's docs on [memory and rules](https://code.claude.com/docs/en/memory.md), [what survives compaction](https://code.claude.com/docs/en/context-window.md), [Bash reads that count as a read](https://code.claude.com/docs/en/tools-reference.md), [skills](https://code.claude.com/docs/en/skills.md) and [hooks](https://code.claude.com/docs/en/hooks.md), as of Claude Code 2.1.310. The cue column is what this repository's tests assert.
 
 ## How it works
 

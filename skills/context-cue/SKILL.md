@@ -1,6 +1,6 @@
 ---
 name: context-cue
-description: Build a context cue — a Claude Code hook that injects one piece of guidance into the agent's context the first time a session performs a given kind of work, then stays silent for the rest of that session. Use when a rule written in CLAUDE.md would have faded by the time the work starts, when a path-scoped `.claude/rules` file would miss it because the session reads and edits through Bash, when a per-edit hook would be noise, or to add guidance to a third-party skill without editing it; also when asked for a just-in-time or once-per-session reminder.
+description: Build a context cue — a Claude Code hook that injects one piece of guidance into the agent's context the first time a session performs a given kind of work, then stays silent for the rest of that session. Use when a rule written in CLAUDE.md would have faded by the time the work starts, when a path-scoped `.claude/rules` file would load on any read of a matching file rather than on the act, or the act is running a command or a write through Bash, when a per-edit hook would be noise, or to add guidance to a third-party skill without editing it; also when asked for a just-in-time or once-per-session reminder.
 compatibility: Claude Code hooks; bash and jq 1.6 or later
 ---
 
@@ -12,7 +12,7 @@ Installed cues live in `~/.claude/context-cues/`: each cue is a hook script `<na
 
 **Hook on the act, not on the skill.** A cue about a tool that a skill teaches could fire when the `Skill` tool loads that skill, but agents often run the tool without loading the skill (in the author's sessions, one CLI ran without its skill in 12 of 22 sessions), and a skill invoked as a slash command bypasses the `Skill` tool entirely. A cue about _doing_ something watches the doing. The same property lets a cue extend a third-party skill: the guidance lives in the cue, so the skill's own files stay untouched and its updates pull cleanly.
 
-It is a hook, not a `.claude/rules` file: a path-scoped rule attaches when the Read tool opens a matching file, so a session that reads with `cat` and writes with heredocs never sees it ([trigger-design.md](references/trigger-design.md)), and a file under `~/.claude/rules/` with no `paths:` loads on every session. Keep the cue text in a plain file outside that directory, beside the hook.
+It is a hook, not a `.claude/rules` file: a path-scoped rule loads on the first read, write or edit of a matching file, whatever the work, and has no trigger for running a command or for a write through a Bash redirect ([trigger-design.md](references/trigger-design.md)); a file under `~/.claude/rules/` with no `paths:` loads on every session. Keep the cue text in a plain file outside that directory, beside the hook.
 
 ## Placement
 
