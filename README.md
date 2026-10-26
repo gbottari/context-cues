@@ -18,12 +18,12 @@ Cues also extend skills you do not own. To add your own guidance to a third-part
 
 ## Compared with the built-in options
 
-| Job | Context cues | `AGENTS.md` or `CLAUDE.md` | Rules | Skills | Hooks |
+| Job | Context cues | `AGENTS.md` or `CLAUDE.md` | Path rules | Skills | Hooks |
 | --- | :-: | :-: | :-: | :-: | :-: |
 | Remind the agent the first time it runs a given command | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Remind the agent the first time it writes a given kind of code, Bash writes included | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Spend no tokens in a session where the work never comes up | ✅ | ❌ | ✅ | ❌ | ✅ |
-| Keep a rule in view through most of the work | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Keep a rule in view through most of the work | ❌ | ✅ | ❌ | ❌ | ❌ |
 | Load a convention when the agent reads or edits a file in a folder or of a type | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Load a procedure when the agent judges the task needs it | ❌ | ❌ | ❌ | ✅ | ❌ |
 | Block a tool call that meets a condition, before it runs | ❌ | ❌ | ❌ | ❌ | ✅ |
