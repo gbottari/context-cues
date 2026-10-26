@@ -1,0 +1,1 @@
+A subagent with `isolation: worktree` starts from the repository's default branch, not from the branch this session is on. Files that exist only on this branch are missing there: commit what it needs first, or give it absolute paths into this checkout.

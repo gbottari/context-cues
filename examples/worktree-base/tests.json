@@ -1,0 +1,9 @@
+[
+  { "want": "fired", "label": "Agent in a worktree", "tool": "Agent", "input": { "description": "x", "prompt": "do x", "isolation": "worktree" } },
+  { "want": "fired", "label": "Task, the older name of the tool", "tool": "Task", "input": { "description": "x", "prompt": "do x", "isolation": "worktree" } },
+  { "want": "silent", "label": "Agent without isolation", "tool": "Agent", "input": { "description": "x", "prompt": "do x" } },
+  { "want": "silent", "label": "the words only in the prompt", "tool": "Agent", "input": { "description": "x", "prompt": "use isolation: worktree next time" } },
+  { "want": "silent", "label": "git worktree add through Bash", "command": "git worktree add ../wt feature" },
+  { "want": "fired", "label": "first worktree in a session", "session": "twice", "tool": "Agent", "input": { "prompt": "a", "isolation": "worktree" } },
+  { "want": "silent", "label": "second worktree, same session", "session": "twice", "tool": "Agent", "input": { "prompt": "b", "isolation": "worktree" } }
+]

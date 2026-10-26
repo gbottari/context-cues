@@ -1,0 +1,13 @@
+[
+  { "want": "fired", "label": "commit in a repo with no remote", "setup": "git init -q", "command": "git commit -m x", "says": "has no git remote" },
+  { "want": "silent", "label": "commit in a repo with a remote", "setup": "git init -q && git remote add origin https://example.com/r.git", "command": "git commit -m x" },
+  { "want": "silent", "label": "commit outside any repo", "command": "git commit -m x" },
+  { "want": "fired", "label": "git -C into a repo with no remote", "setup": "git init -q sub", "command": "git -C sub commit -m x" },
+  { "want": "fired", "label": "cd into a repo with no remote", "setup": "git init -q sub", "command": "cd sub && git commit -m x" },
+  { "want": "silent", "label": "commit only named in an echo", "setup": "git init -q", "command": "echo \"then git commit\"" },
+  { "want": "silent", "label": "git log, not a commit", "setup": "git init -q", "command": "git log --oneline" },
+
+  { "want": "fired", "label": "first commit in a repo", "session": "per-repo", "setup": "git init -q", "command": "git commit -m one" },
+  { "want": "silent", "label": "second commit, same repo", "session": "per-repo", "command": "git commit -m two" },
+  { "want": "fired", "label": "another repo, same session", "session": "per-repo", "setup": "git init -q other", "command": "git -C other commit -m three", "says": "other" }
+]

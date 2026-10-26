@@ -1,0 +1,19 @@
+[
+  { "want": "fired", "label": "Write a SKILL.md", "tool": "Write", "input": { "file_path": "/p/skills/foo/SKILL.md", "content": "---\nname: foo\n---\n" } },
+  { "want": "fired", "label": "Edit adds a line to AGENTS.md", "tool": "Edit", "input": { "file_path": "/p/AGENTS.md", "old_string": "# Repo", "new_string": "# Repo\n\nRun the tests." } },
+  { "want": "fired", "label": "Write a slash command", "tool": "Write", "input": { "file_path": "/p/.claude/commands/ship.md", "content": "Ship it." } },
+  { "want": "fired", "label": "Write a skill reference", "tool": "Write", "input": { "file_path": "/p/skills/foo/references/traps.md", "content": "Trap one." } },
+  { "want": "fired", "label": "bash heredoc into CLAUDE.md", "command": "cat > CLAUDE.md <<EOF\nRun the tests.\nEOF" },
+
+  {"want": "silent", "label": "a README that names SKILL.md", "tool": "Write", "input": {"file_path": "/p/README.md", "content": "Edit skills/foo/SKILL.md to change it."}},
+  { "want": "silent", "label": "Write a README", "tool": "Write", "input": { "file_path": "/p/README.md", "content": "Hello" } },
+  { "want": "silent", "label": "a skill-creator workspace", "tool": "Write", "input": { "file_path": "/p/foo-workspace/iteration-1/skill/SKILL.md", "content": "x" } },
+  { "want": "silent", "label": "Read a SKILL.md", "tool": "Read", "input": { "file_path": "/p/skills/foo/SKILL.md" } },
+  { "want": "silent", "label": "Edit that only removes a line", "tool": "Edit", "input": { "file_path": "/p/AGENTS.md", "old_string": "# Repo\nOld line.", "new_string": "# Repo" } },
+  { "want": "silent", "label": "cat a SKILL.md", "command": "cat skills/foo/SKILL.md", "response": "---\nname: foo\n---\n" },
+
+  { "want": "silent", "label": "loading the skill first", "session": "loaded", "tool": "Skill", "input": { "skill": "mattpocock-skills:writing-for-agents" } },
+  { "want": "silent", "label": "then writing a SKILL.md", "session": "loaded", "tool": "Write", "input": { "file_path": "/p/skills/foo/SKILL.md", "content": "x" } },
+  { "want": "silent", "label": "loading another skill", "session": "other", "tool": "Skill", "input": { "skill": "mattpocock-skills:tdd" } },
+  { "want": "fired", "label": "then writing a SKILL.md", "session": "other", "tool": "Write", "input": { "file_path": "/p/skills/foo/SKILL.md", "content": "x" } }
+]
