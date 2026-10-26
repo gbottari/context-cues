@@ -150,10 +150,10 @@ CI runs the full test suite on Linux, macOS and Windows for every push.
 
 ## Limits
 
-- **The cue arrives just after the first act, not before it.** `PreToolUse` hooks cannot add context. The first comment of a session goes unguided; every later one is covered.
+- **The cue arrives just after the first act, not before it.** Context from a `PreToolUse` hook also reaches the agent beside the tool result, so it lands no sooner. The first comment of a session goes unguided; every later one is covered.
 - **Subagents do not get cues.** A subagent shares its parent's `session_id`, so the marker says the cue already fired, but the subagent never saw the text.
 - **A regex cannot see quoting.** Text after `;` inside quotes, or a heredoc line that starts with the command, can still fire a command cue.
-- **Cue text is capped at 10,000 characters** by Claude Code. Longer output is cut to a 2 KB preview, so a long cue points to a doc instead.
+- **Cue text is capped at 10,000 characters** by Claude Code. Longer output is cut to a preview of the first 2,000 characters, so a long cue points to a doc instead.
 
 ## Cost
 
