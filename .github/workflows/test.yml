@@ -47,4 +47,4 @@ jobs:
           jq -e '.name and .owner.name and (.plugins | length > 0)' .claude-plugin/marketplace.json
           test "$(jq -r .name .claude-plugin/plugin.json)" = "$(jq -r '.plugins[0].name' .claude-plugin/marketplace.json)"
           jq -e '.hooks.SessionStart[0].hooks[0].command | contains("rearm.sh")' hooks/hooks.json
-          jq -e '.hooks.PostToolUse[0] | .matcher == "*" and (.hooks[0].command | contains("dispatch.sh"))' hooks/hooks.json
+          jq -e '.hooks.PostToolUse[0] | (.matcher | contains("Bash")) and (.hooks[0].command | contains("dispatch.sh"))' hooks/hooks.json

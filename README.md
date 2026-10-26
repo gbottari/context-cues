@@ -32,7 +32,7 @@ Sources: Claude Code's docs on [memory and rules](https://code.claude.com/docs/e
 
 ## How it works
 
-One `PostToolUse` hook, `dispatch.sh`, runs after every tool call with the call's JSON payload on stdin: `session_id`, `tool_name`, `tool_input` and `tool_response`. For each cue folder under `~/.claude/context-cues/` it goes through four steps:
+One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool cues check (Bash, PowerShell, the file-editing tools, Agent and Skill) with the call's JSON payload on stdin: `session_id`, `tool_name`, `tool_input` and `tool_response`. For each cue folder under `~/.claude/context-cues/` it goes through four steps:
 
 1. **Already fired?** It skips a cue whose marker file exists at `$XDG_RUNTIME_DIR/context-cues/<session_id>/<cue-name>`.
 2. **Right tool?** It reads every `cue.ini` and exits when no cue can act on this tool, so a `Read` or `Grep` call costs no `jq` run.
@@ -85,7 +85,7 @@ cp -R skills/context-cue ~/.claude/skills/
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "*",
+        "matcher": "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|Skill",
         "hooks": [
           {
             "type": "command",
@@ -175,7 +175,7 @@ CI runs the full test suite on Linux, macOS and Windows for every push.
 
 ## Cost
 
-No tokens until a cue fires. The dispatcher is one process, started after every tool call. Measured inside Claude Code on Linux, it adds about 5 ms per call with no cues installed, and with the five examples about 17 ms on a Bash call and 7 ms on a Read call. [`docs/performance.md`](docs/performance.md) has the measurements.
+No tokens until a cue fires. The dispatcher is one process, started after each call of a tool cues check; Read, Grep and Glob start nothing. Measured inside Claude Code on Linux, it adds about 5 ms to such a call with no cues installed, and about 17 ms to a Bash call with the five examples. [`docs/performance.md`](docs/performance.md) has the measurements.
 
 ## How this was built
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PostToolUse hook, registered once on every tool: the dispatcher for all context cues.
+# PostToolUse hook, registered once on the tools cues check: the dispatcher for all context cues.
 #
 # Each cue is a folder under $CONTEXT_CUES_DIR (default ~/.claude/context-cues) holding
 # cue.ini, its checks, and prompt.md, its text. On each tool call the dispatcher runs the

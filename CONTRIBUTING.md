@@ -16,11 +16,11 @@ A new or changed example needs fired-or-silent cases in its `tests.json`, which 
 
 ## Keep the scripts portable
 
-Cues run inside Claude Code on every tool call, on Linux, on macOS with the system bash 3.2, and on Windows under Git Bash.
+Cues run inside Claude Code on every call of a tool they check, on Linux, on macOS with the system bash 3.2, and on Windows under Git Bash.
 
 - Write hooks in bash, with `jq` 1.6 or later and POSIX `awk` as the only other dependencies. No Python, Node or other runtimes in anything a user installs.
 - Use portable `grep -E`. Spell word boundaries out, as in `(^|[^[:alnum:]_-])tee[[:space:]]`, because `\b`, `\w` and `grep -P` are missing from some grep builds.
-- Keep the dispatcher cheap: it runs on every tool call. Check markers and the tool name before `jq`, and match short text with bash's `=~` rather than starting `grep`.
+- Keep the dispatcher cheap: it runs on every Bash call and every file edit. Check markers and the tool name before `jq`, and match short text with bash's `=~` rather than starting `grep`.
 
 ## Commits
 

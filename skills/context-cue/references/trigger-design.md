@@ -105,4 +105,4 @@ A path-scoped `.claude/rules` file loads when Claude reads, writes or edits a ma
 - **The act is running a command.** A command has no path to match.
 - **The write goes through Bash.** Claude Code's docs list the Read, Write and Edit tools and the single-file view commands as triggers; a redirect, heredoc or `sed -i` is not among them, and auto mode steers agents toward Bash for small edits.
 
-The dispatcher sees every tool call, so a cue covers all three.
+The dispatcher sees Bash and the file-editing tools, so a cue covers all three.

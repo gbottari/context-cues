@@ -17,7 +17,7 @@ Each cue is a folder, `~/.claude/context-cues/<name>/`:
 | `tests.json` | the fired-or-silent cases [`cue-test.sh`](scripts/cue-test.sh) runs |
 | any script | a run step's script, named in `cue.ini` |
 
-One hook, `dispatch.sh`, reads every folder on every tool call. With the Context Cues plugin it is registered already; a manual install registers it once in `~/.claude/settings.json`, under `PostToolUse` with the matcher `*`. A new cue needs no settings change: the folder is live as soon as `cue.ini` exists, so build it elsewhere and move it in once its tests pass.
+One hook, `dispatch.sh`, reads every folder after each call of a tool cues check: `Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|Skill`. With the Context Cues plugin it is registered already; a manual install registers it once in `~/.claude/settings.json`, under `PostToolUse` with that matcher. A check on any other tool never runs: the plugin's matcher is fixed, and a manual install widens its own. A new cue needs no settings change: the folder is live as soon as `cue.ini` exists, so build it elsewhere and move it in once its tests pass.
 
 **Hook on the act, not on the skill.** A cue about a tool that a skill teaches could fire when the `Skill` tool loads that skill, but agents often run the tool without loading the skill (in the author's sessions, one CLI ran without its skill in 12 of 22 sessions), and a skill invoked as a slash command bypasses the `Skill` tool entirely. A cue about _doing_ something watches the doing. The same property lets a cue extend a third-party skill: the guidance lives in the cue, so the skill's own files stay untouched and its updates pull cleanly.
 
