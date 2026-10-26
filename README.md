@@ -8,7 +8,7 @@ A **context cue** is a small hook script plus a text file. The first time a sess
 
 There are three usual places to put guidance for a coding agent, and each one fails in a predictable way:
 
-- **`CLAUDE.md` fades.** It loads at session start. By the time the work it governs comes up, a long session has buried it.
+- **`AGENTS.md` and `CLAUDE.md` fade.** They load at session start. By the time the work it governs comes up, a long session has buried it.
 - **A hook on every edit is noise.** The same reminder after every tool call gets ignored.
 - **Path-scoped `.claude/rules` files key on a path, not on the work.** A rule loads the first time Claude reads, writes or edits a matching file, so a plain read can bring it in long before the work it governs starts. Running a command has no path, so no rule can fire on it, and a write through a Bash redirect or heredoc is not among the triggers Claude Code's docs list.
 
@@ -18,15 +18,15 @@ Cues also extend skills you do not own. To add your own guidance to a third-part
 
 ## Compared with the built-in options
 
-| Job | `CLAUDE.md` | Path-scoped rules | Skill | Plain hook | Context cue |
+| Job | Context cues | `AGENTS.md` or `CLAUDE.md` | Rules | Skills | Hooks |
 | --- | :-: | :-: | :-: | :-: | :-: |
-| Keep a rule in view through most of the work | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Bring in a convention when Claude opens a file in a folder or of a type | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Walk Claude through a long procedure step by step | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Check or block every tool call | ❌ | ❌ | ❌ | ✅ | ❌ |
-| Remind Claude the first time it runs a given command | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Remind Claude the first time it writes a given kind of code, Bash writes included | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Spend no tokens in a session where the work never comes up | ❌ | ✅ | ❌ | ✅ | ✅ |
+| Remind the agent the first time it runs a given command | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Remind the agent the first time it writes a given kind of code, Bash writes included | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Spend no tokens in a session where the work never comes up | ✅ | ❌ | ✅ | ❌ | ✅ |
+| Keep a rule in view through most of the work | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Load a convention when the agent reads or edits a file in a folder or of a type | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Load a procedure when the agent judges the task needs it | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Block a tool call that meets a condition, before it runs | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 Sources: Claude Code's docs on [memory and rules](https://code.claude.com/docs/en/memory.md), [what survives compaction](https://code.claude.com/docs/en/context-window.md), [Bash reads that count as a read](https://code.claude.com/docs/en/tools-reference.md), [skills](https://code.claude.com/docs/en/skills.md) and [hooks](https://code.claude.com/docs/en/hooks.md), as of Claude Code 2.1.310. The cue column is what this repository's tests assert.
 
