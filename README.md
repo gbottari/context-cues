@@ -18,15 +18,15 @@ Cues also extend skills you do not own. To add your own guidance to a third-part
 
 ## Compared with the built-in options
 
-|  | `CLAUDE.md` and unscoped rules | Path-scoped `.claude/rules` | Skill | Plain hook | Context cue |
-| --- | --- | --- | --- | --- | --- |
-| **Loads** | At session start | When Claude reads, writes or edits a matching file | When Claude judges it relevant to the prompt, or you type `/name` | After every matching tool call | After the first tool call that does the governed act |
-| **Keyed on** | Nothing: always present | A file path | The prompt, matched against the skill's description | A tool name | What the call adds or runs |
-| **Running a command** | — | Cannot fire: a command has no path | Only if Claude loads the skill before running it | Fires on every run | Fires on the first run |
-| **Work done through Bash** | — | Single-file views (`cat`, `head`, `grep` on one file) load it; redirects and heredocs are not listed | — | Sees it when matched on `Bash` | Sees writes and runs; ignores reads on purpose |
-| **Cost when the work never happens** | Its full text, every session | None | The description, in every session's skill listing | A process per matching call; tokens only when it prints | A process per matching call; no tokens |
-| **After `/compact`** | Re-injected from disk | Loads again on the next matching file | Body re-injected, capped at 5,000 tokens per skill | Earlier output summarized; the next call adds it again | Re-armed; fires again at the next act |
-| **Best for** | Rules that hold for most of the work | Conventions tied to a folder or file type | Long procedures followed step by step | Checking or blocking every call | One short reminder at the moment an act begins |
+| Job | `CLAUDE.md` | Path-scoped rules | Skill | Plain hook | Context cue |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| Keep a rule in view through most of the work | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Bring in a convention when Claude opens a file in a folder or of a type | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Walk Claude through a long procedure step by step | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Check or block every tool call | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Remind Claude the first time it runs a given command | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Remind Claude the first time it writes a given kind of code, Bash writes included | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Spend no tokens in a session where the work never comes up | ❌ | ✅ | ❌ | ✅ | ✅ |
 
 Sources: Claude Code's docs on [memory and rules](https://code.claude.com/docs/en/memory.md), [what survives compaction](https://code.claude.com/docs/en/context-window.md), [Bash reads that count as a read](https://code.claude.com/docs/en/tools-reference.md), [skills](https://code.claude.com/docs/en/skills.md) and [hooks](https://code.claude.com/docs/en/hooks.md), as of Claude Code 2.1.310. The cue column is what this repository's tests assert.
 
