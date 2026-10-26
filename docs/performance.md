@@ -8,18 +8,20 @@ None until a cue fires. A cue that fires adds its text once, and again after eac
 
 ## Time
 
-**The dispatcher is one process per tool call, whatever the number of cues.** Measured on 2026-10-26 on Linux, in a shell loop rather than inside Claude Code, with the five example cues installed and no marker set. The machine's load average was about 7, and repeated runs moved by 1 to 3 ms.
+**Measured inside Claude Code on 2026-10-26**, with Claude Code 2.1.310 on Linux: the median gap between a tool call finishing and the next model request, which holds every `PostToolUse` hook. Each setup ran three headless sessions of 10 Bash calls (`echo N`) and 10 Read calls, in shuffled order, with only the test settings loaded. Within one setup, the median of a session moved by 2 to 3 ms.
 
-| Call                                                 | Per call    |
-| ---------------------------------------------------- | ----------- |
-| `Read`, which no example acts on                     | about 8 ms  |
-| `Bash` running `ls -la`                              | about 15 ms |
-| `Edit` of an unrelated file                          | about 15 ms |
-| `Bash` writing a 2,000-line heredoc, a 90 KB payload | about 56 ms |
+| Setup | Bash call | Read call |
+| --- | --- | --- |
+| No hooks | 13.0 ms | 17.0 ms |
+| The dispatcher, no cues | 18.0 ms (+5) | 21.0 ms (+4) |
+| The dispatcher, the five examples | 30.0 ms (+17) | 24.0 ms (+7) |
+| Four of the examples as v0.1 scripts, one hook each | 23.0 ms (+10) | 15.0 ms (none) |
 
-A call starts three processes: bash, one `awk` that reads every `cue.ini`, and one `jq`. A call no cue can act on stops before `jq`. Short text is matched with bash's own regex instead of `grep`, which saves a process per check; text of 2,000 characters or more goes to `grep`, because bash reads it a byte at a time.
+**Every tool call starts the dispatcher**, because it is registered with the matcher `*`: a cue can check any tool. With no cues installed it adds about 5 ms per call, and with the five examples about 17 ms on a Bash call and 7 ms on a Read call. Claude Code reported the dispatcher itself at a median of 17 ms on a Bash call and 10 ms on a Read call.
 
-**Claude Code adds its own cost per hook.** On 2026-10-10, with Claude Code 2.1.296 and the earlier layout of one script per cue, seven cues on `Bash` added 17.5 ms per call: the median gap between a Bash call finishing and the next model request, against 11.5 ms with no hooks. Hooks on one call run in parallel, per the hooks reference ("All matching hooks run in parallel"), and Claude Code reported 8 to 16 ms to spawn each one. The dispatcher has not been measured inside Claude Code.
+**One script per cue cost less per Bash call with four cues**, and nothing on a tool no cue watched: Claude Code starts a hook only for the tools its matcher names, and starts the hooks on one call in parallel. That layout grows with the number of cues: on 2026-10-10, with Claude Code 2.1.296, seven such hooks on `Bash` added 17.5 ms per call.
+
+A call starts three processes: bash, one `awk` that reads every `cue.ini`, and one `jq`. A call no cue can act on stops before `jq`. Short text is matched with bash's own regex instead of `grep`, which saves a process per check; text of 2,000 characters or more goes to `grep`, because bash reads it a byte at a time. In a shell loop, a Bash call writing a 2,000-line heredoc, a 90 KB payload, took about 56 ms.
 
 Windows and macOS were not measured. Starting processes under Git Bash on Windows is slower than on Linux, so expect a larger figure there.
 

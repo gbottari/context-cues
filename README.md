@@ -175,7 +175,7 @@ CI runs the full test suite on Linux, macOS and Windows for every push.
 
 ## Cost
 
-No tokens until a cue fires. The dispatcher is one process per tool call, whatever the number of cues. With the five examples installed, timed in a shell loop on Linux, it took about 8 ms on a call no cue acts on and 15 ms on a Bash call. [`docs/performance.md`](docs/performance.md) has the measurements and what they leave out.
+No tokens until a cue fires. The dispatcher is one process, started after every tool call. Measured inside Claude Code on Linux, it adds about 5 ms per call with no cues installed, and with the five examples about 17 ms on a Bash call and 7 ms on a Read call. [`docs/performance.md`](docs/performance.md) has the measurements.
 
 ## How this was built
 
