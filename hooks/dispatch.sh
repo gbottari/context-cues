@@ -55,21 +55,49 @@ fail_cue() {
 	spend "$1"
 }
 
-# Parse every live cue.ini in one awk run, which prints shell code for one eval:
+# Parse every cue.ini in one awk run, which prints shell code:
 #   S_CUE[i]=... S_KIND[i]=... and the other S_* arrays: section i, a [check] or [suppress]
-#   n=...            the number of sections
-#   fail_cue ...     one call per broken cue
-#   wanted=... any=  the tools any section could pass on, for the tool filter below
-#   fields=...       the tool_input fields tool-input checks read, one per line
-# A cue can pass only on the tools of its first built-in [check], since every check must
-# pass; any=1 when a cue's checks are all run steps, which take any tool.
+#   broken_cue ...   one call per broken cue
+#   n=... wanted=... any=... fields=...
+# n counts the sections; wanted and any are the tools any section could pass on, for the
+# tool filter below; fields are the tool_input fields tool-input checks read. A cue can pass
+# only on the tools of its first built-in [check], since every check must pass, and
+# any=1 when a cue's checks are all run steps, which take any tool.
+#
+# The code is cached beside the markers, keyed by the cues folder, and used while every
+# cue.ini and this script are older than the cache and the list of files is the same.
+# Strictly older: an edit in the same second as the cache, where mtimes are whole seconds,
+# parses again.
+broken_cue() { [ -e "$MARK_ROOT/$sid/$1" ] || fail_cue "$1" "cue.ini: $2"; }
 files=()
-for cue in "${cues[@]}"; do
-	if [ -r "$CUES_DIR/$cue/cue.ini" ]; then files+=("$CUES_DIR/$cue/cue.ini"); else fail_cue "$cue" "cue.ini is not readable"; fi
+unreadable=''
+for ini in "$CUES_DIR"/*/cue.ini; do
+	[ -e "$ini" ] || continue
+	if [ -r "$ini" ]; then
+		files+=("$ini")
+	else
+		unreadable=1
+		cue=${ini%/cue.ini}
+		cue=${cue##*/}
+		[ -e "$MARK_ROOT/$sid/$cue" ] || fail_cue "$cue" "cue.ini is not readable"
+	fi
 done
 [ ${#files[@]} -gt 0 ] || exit 0
+cache="$MARK_ROOT/parsed${CUES_DIR//\//_}"
+code=''
+if [ -z "$unreadable" ] && [ -f "$cache" ] && [ "${BASH_SOURCE[0]}" -ot "$cache" ]; then
+	IFS= read -r first <"$cache"
+	if [ "$first" = "# ${files[*]}" ]; then
+		code=cached
+		for ini in "${files[@]}"; do [ "$ini" -ot "$cache" ] || { code=''; break; }; done
+	fi
+fi
 n=0 wanted='' any='' fields=''
-eval "$(awk -v Q="'" -v FILE_TOOLS="$FILE_TOOLS" '
+if [ "$code" = cached ]; then
+	# shellcheck source=/dev/null
+	. "$cache"
+else
+	code=$(awk -v Q="'" -v FILE_TOOLS="$FILE_TOOLS" '
 	function q(s,   out, i) {
 		out = ""
 		while ((i = index(s, Q)) > 0) { out = out substr(s, 1, i - 1) Q "\"" Q "\"" Q; s = substr(s, i + 1) }
@@ -102,7 +130,7 @@ eval "$(awk -v Q="'" -v FILE_TOOLS="$FILE_TOOLS" '
 		if (cue == "") return
 		close_section()
 		if (bad == "" && checks == 0) bad = "no [check] section"
-		if (bad != "") { print "fail_cue " q(cue) " " q("cue.ini: " bad); return }
+		if (bad != "") { print "broken_cue " q(cue) " " q(bad); return }
 		for (i = 1; i <= ns; i++) {
 			printf "S_CUE[%d]=%s S_KIND[%d]=%s", n, q(cue), n, q(sec[i, "kind"])
 			for (k in names) printf " %s[%d]=%s", names[k], n, q(sec[i, k])
@@ -149,7 +177,12 @@ eval "$(awk -v Q="'" -v FILE_TOOLS="$FILE_TOOLS" '
 		flush()
 		print "n=" n " wanted=" q(substr(wanted, 2)) " any=" (any ? 1 : "\"\"") " fields=" q(fields)
 	}
-' "${files[@]}")"
+' "${files[@]}")
+	eval "$code"
+	if [ -z "$unreadable" ] && mkdir -p "$MARK_ROOT"; then
+		printf '# %s\n%s\n' "${files[*]}" "$code" >"$cache.$$" && mv -f "$cache.$$" "$cache"
+	fi
+fi
 
 # An empty cue.ini gives awk no line to read, so it produces no section at all.
 live=()

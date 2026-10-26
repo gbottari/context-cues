@@ -124,6 +124,23 @@ cue "$G" healthy "$ok"
 cue "$G" bad-tools "$(printf '[check]\nuses = tool-input\ntools = [\nmatch = .\n')"
 expect "a broken tools pattern leaves the rest alone" "healthy says hi" "$(dispatch "$G" "$(probe g1 anything)")"
 
+# --- the parse cache follows edits, removals and additions at once ---
+K=$work/cache
+cue "$K" edited "$(printf '[check]\nuses = tool-input\ntools = Probe\nfield = q\nmatch = ^old$\n')"
+cue "$K" removed "$(printf '[check]\nuses = tool-input\ntools = Probe\nmatch = .\n')"
+expect "before the edit" "edited says hi" "$(dispatch "$K" "$(probe k1 old)")"
+expect "a cache is written" yes "$(for f in "$work/marks/context-cues"/parsed*cache; do [ -s "$f" ] && echo yes; done)"
+printf '[check]\nuses = tool-input\ntools = Probe\nfield = q\nmatch = ^new$\n' >"$K/edited/cue.ini"
+expect "an edit in the same second applies" "edited says hi" "$(dispatch "$K" "$(probe k2 new)")"
+expect "the old match is gone" - "$(dispatch "$K" "$(probe k3 old)" | grep edited)"
+rm -r "$K/removed"
+expect "a removed cue stays silent" - "$(dispatch "$K" "$(probe k4 new)" | grep removed)"
+# Built elsewhere and moved in, as the skill says, so its cue.ini is older than the cache.
+cue "$work/elsewhere" added "$(printf '[check]\nuses = tool-input\ntools = Probe\nmatch = .\n')"
+touch -t 202001010000 "$work/elsewhere/added/cue.ini"
+mv "$work/elsewhere/added" "$K/"
+expect "a cue moved in fires" "added says hi" "$(dispatch "$K" "$(probe k5 new)")"
+
 # --- input the dispatcher refuses ---
 expect "a session id with a slash" - "$(dispatch "$T" "$(probe ../x go)")"
 expect "no cues folder" - "$(dispatch "$work/nowhere" "$(probe e1 go)")"

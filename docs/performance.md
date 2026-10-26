@@ -17,11 +17,11 @@ None until a cue fires. A cue that fires adds its text once, and again after eac
 | The dispatcher, the five examples | 30.0 ms (+17) | 24.0 ms (+7) |
 | Four of the examples as v0.1 scripts, one hook each | 23.0 ms (+10) | 15.0 ms (none) |
 
-**Every tool call starts the dispatcher**, because it is registered with the matcher `*`: a cue can check any tool. With no cues installed it adds about 5 ms per call, and with the five examples about 17 ms on a Bash call and 7 ms on a Read call. Claude Code reported the dispatcher itself at a median of 17 ms on a Bash call and 10 ms on a Read call.
+**Every tool call starts the dispatcher**, because it is registered with the matcher `*`: a cue can check any tool. With no cues installed it adds about 5 ms per call, and with the five examples about 17 ms on a Bash call and 7 ms on a Read call. Claude Code reported the dispatcher itself at a median of 17 ms on a Bash call and 10 ms on a Read call. The dispatcher now keeps its parse of every `cue.ini` between calls; one more session with that cache put the hook at 15 ms on a Bash call and 6 ms on a Read call.
 
 **One script per cue cost less per Bash call with four cues**, and nothing on a tool no cue watched: Claude Code starts a hook only for the tools its matcher names, and starts the hooks on one call in parallel. That layout grows with the number of cues: on 2026-10-10, with Claude Code 2.1.296, seven such hooks on `Bash` added 17.5 ms per call.
 
-A call starts three processes: bash, one `awk` that reads every `cue.ini`, and one `jq`. A call no cue can act on stops before `jq`. Short text is matched with bash's own regex instead of `grep`, which saves a process per check; text of 2,000 characters or more goes to `grep`, because bash reads it a byte at a time. In a shell loop, a Bash call writing a 2,000-line heredoc, a 90 KB payload, took about 56 ms.
+A call starts at most three processes: bash, one `jq`, and one `awk` that parses every `cue.ini`, only when one has changed since the last parse. A call no cue can act on stops before `jq`. Short text is matched with bash's own regex instead of `grep`, which saves a process per check; text of 2,000 characters or more goes to `grep`, because bash reads it a byte at a time. In a shell loop, a Bash call writing a 2,000-line heredoc, a 90 KB payload, took about 56 ms.
 
 Windows and macOS were not measured. Starting processes under Git Bash on Windows is slower than on Linux, so expect a larger figure there.
 
