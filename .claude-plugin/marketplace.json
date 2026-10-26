@@ -9,7 +9,7 @@
     {
       "name": "context-cues",
       "source": "./",
-      "description": "A skill for building once-per-session context cues, and the hook that re-arms them after /compact and /clear"
+      "description": "A skill for building once-per-session context cues, the hook that runs them, and the hook that re-arms them after /compact and /clear"
     }
   ]
 }

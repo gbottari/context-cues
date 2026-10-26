@@ -1,0 +1,5 @@
+[
+  { "matrix": "command", "run": "tvly search \"x\" --json", "phrase": "tvly search" },
+  { "want": "silent", "label": "another tvly subcommand", "command": "tvly extract https://example.com" },
+  { "want": "silent", "label": "a longer command name", "command": "mytvly search x" }
+]

@@ -1,0 +1,24 @@
+[
+  { "want": "fired", "label": "add a comment to foo.ts", "tool": "Edit", "input": { "file_path": "/p/foo.ts", "old_string": "const a=1", "new_string": "// why\nconst a=1" } },
+  { "want": "fired", "label": "Write App.tsx with /* */", "tool": "Write", "input": { "file_path": "/p/App.tsx", "content": "/* header */\nexport const A=1\n" } },
+  { "want": "fired", "label": "MultiEdit, comment in the .ts edit", "tool": "MultiEdit", "input": { "edits": [ { "file_path": "/p/x.py", "new_string": "x=1" }, { "file_path": "/p/y.ts", "new_string": "// note\nconst y=2" } ] } },
+  { "want": "fired", "label": "bash heredoc into a .ts file", "command": "cat > src/foo.ts <<EOF\n// why\nconst a=1\nEOF" },
+  { "want": "fired", "label": "reword an existing comment", "tool": "Edit", "input": { "file_path": "/p/foo.ts", "old_string": "// old\nconst a=1", "new_string": "// new\nconst a=1" } },
+  { "want": "fired", "label": "bash tee into a .ts file", "command": "printf \"// why\\n\" | tee -a src/foo.ts" },
+  { "want": "fired", "label": "bash sed -i on a .ts file", "command": "sed -i \"1i // why\" src/foo.ts" },
+
+  {"want": "silent", "label": "a Markdown file that quotes a .ts comment", "tool": "Write", "input": {"file_path": "/p/notes.md", "content": "In src/foo.ts:\n// why\n"}},
+  { "want": "silent", "label": "edit the line below a kept comment", "tool": "Edit", "input": { "file_path": "/p/foo.ts", "old_string": "// keep\nconst a=1", "new_string": "// keep\nconst a=2" } },
+  { "want": "silent", "label": "delete a comment", "tool": "Edit", "input": { "file_path": "/p/foo.ts", "old_string": "// stale\nconst a=1", "new_string": "const a=1" } },
+  { "want": "silent", "label": "Write foo.ts with no comment", "tool": "Write", "input": { "file_path": "/p/foo.ts", "content": "export const a=1\n" } },
+  { "want": "silent", "label": "grep -rn // src", "command": "grep -rn \"//\" src/", "response": "src/foo.ts:12: // x\n" },
+  { "want": "silent", "label": "ls -la src//", "command": "ls -la src//", "response": "foo.ts\n" },
+  { "want": "silent", "label": "grep a .ts file into out.txt", "command": "grep \"//\" src/foo.ts > /tmp/o.txt" },
+  { "want": "silent", "label": "a command named like tee", "command": "mytee // src/foo.ts" },
+  { "want": "silent", "label": "Edit foo.ts.snap", "tool": "Edit", "input": { "file_path": "/p/foo.ts.snap", "new_string": "// x" } },
+  { "want": "silent", "label": "https:// is not a comment", "tool": "Write", "input": { "file_path": "/p/u.ts", "content": "const u=\"https://x.dev\"\n" } },
+  { "want": "silent", "label": "Read a .ts file", "tool": "Read", "input": { "file_path": "/p/foo.ts" }, "response": "// x\n" },
+
+  { "want": "fired", "label": "first comment in a session", "session": "twice", "tool": "Write", "input": { "file_path": "/p/a.ts", "content": "// one\n" } },
+  { "want": "silent", "label": "second comment, same session", "session": "twice", "tool": "Write", "input": { "file_path": "/p/b.ts", "content": "// two\n" } }
+]

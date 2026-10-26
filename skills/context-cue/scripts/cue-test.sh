@@ -1,113 +1,138 @@
-# shellcheck shell=bash
-# Fired-or-silent test helpers for context cues. Source it from a test script:
+#!/usr/bin/env bash
+# Fired-or-silent tests for context cues. Runs each cue folder's tests.json through the
+# dispatcher, with that cue installed alone in a throwaway folder and its markers in
+# another, so a marker left by an earlier run cannot turn a fired case silent.
 #
-#   . ~/.claude/skills/context-cue/scripts/cue-test.sh
-#   C=~/.claude/context-cues
-#   check FIRED  "$C/my-cue.sh" "adds a comment" '{"session_id":"a1","tool_name":"Edit",...}'
-#   check silent "$C/my-cue.sh" "deletes one"    '{"session_id":"b1","tool_name":"Edit",...}'
-#   command_matrix "$C/my-command-cue.sh" 'mytool run x' 'mytool run'
-#   rearm_check "$C/rearm.sh" "$C/my-command-cue.sh" 'mytool run x'
-#   finish my-cue-test
+#   bash cue-test.sh ~/.claude/context-cues/my-cue [another cue folder ...]
 #
-# Give every case its own session_id, so one marker cannot mask a later case. Markers go
-# to a throwaway folder, so a marker left by an earlier run cannot turn FIRED into silent.
+# tests.json is a list. Each entry is one case, or a matrix that expands into many:
+#
+#   {"want": "fired", "label": "adds a comment", "tool": "Edit",
+#    "input": {"file_path": "/p/a.ts", "old_string": "x", "new_string": "// why\nx"}}
+#   {"want": "silent", "label": "only reads", "command": "cat a.ts", "response": "// x"}
+#   {"matrix": "command", "run": "mytool run job-1", "phrase": "mytool run"}
+#
+#   want      fired or silent
+#   tool      tool_name, with input as tool_input; command is short for a Bash call
+#   response  tool_response: a string becomes its stdout
+#   session   session_id; cases that share one share the marker and the folder. Default: unique
+#   setup     shell run in the case's folder before the call; the payload's cwd is that folder
+#   says      text the injected prompt must contain
+#
+# The command matrix runs the command every way a shell runs it (fired), names it in
+# arguments, messages and paths (silent), and checks once per session.
+#
+# A case also fails when the dispatcher writes to stderr or to its error log.
+set -u
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+DISPATCH=${CUE_DISPATCH:-}
+if [ -z "$DISPATCH" ]; then
+	for d in "$here/../../../hooks/dispatch.sh" "$HOME/.claude/context-cues/dispatch.sh"; do
+		[ -r "$d" ] && DISPATCH=$d && break
+	done
+fi
+[ -n "$DISPATCH" ] || { echo "cue-test: dispatch.sh not found; set CUE_DISPATCH" >&2; exit 2; }
+[ $# -gt 0 ] || { sed -n '6p' "$0" | sed 's/^# *//' >&2; exit 2; }
 
-CUE_TEST_MARKS=$(mktemp -d)
-trap 'rm -rf -- "$CUE_TEST_MARKS"' EXIT
-cue_test_n=0
-cue_test_failures=0
+work=$(mktemp -d "${TMPDIR:-/tmp}/cue-test.XXXXXX")
+trap 'rm -rf -- "$work"' EXIT
 
-# run_hook <hook path> <payload>: prints whatever the hook printed
-run_hook() {
-	printf '%s' "$2" | XDG_RUNTIME_DIR="$CUE_TEST_MARKS" bash "$1"
-}
-
-# check <FIRED|silent> <hook path> <label> <payload>
-check() {
-	local want=$1 hook=$2 label=$3 payload=$4 got=silent out
-	cue_test_n=$((cue_test_n + 1))
-	out=$(run_hook "$hook" "$payload")
-	[ -n "$out" ] && got=FIRED
-	if [ "$got" != "$want" ]; then
-		printf 'FAIL  %s: want %s, got %s: %s\n' "${hook##*/}" "$want" "$got" "$label" >&2
-		cue_test_failures=$((cue_test_failures + 1))
-	elif [ "$got" = FIRED ] && ! printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | length > 0' >/dev/null; then
-		printf 'FAIL  %s: fired without additionalContext: %s\n' "${hook##*/}" "$label" >&2
-		cue_test_failures=$((cue_test_failures + 1))
-	fi
-}
-
-# bash_payload <session> <command> [tool_response stdout]
-bash_payload() {
-	jq -cn --arg s "$1" --arg c "$2" --arg o "${3:-}" \
-		'{session_id:$s,tool_name:"Bash",tool_input:{command:$c},tool_response:{stdout:$o}}'
-}
-
-# expect_command <FIRED|silent> <hook path> <label> <command>: a Bash call in a fresh session
-expect_command() {
-	check "$1" "$2" "$3" "$(bash_payload "case-$((cue_test_n + 1))" "$4")"
-}
-
-# command_matrix <hook path> <the command as it is really run> <a prose phrase naming it>
-# Every way a shell runs the command must fire; every mere mention must stay silent.
-command_matrix() {
-	local hook=$1 run=$2 phrase=$3
-
-	expect_command FIRED "$hook" "plain" "$run"
-	expect_command FIRED "$hook" "after cd &&" "cd /tmp && $run"
-	expect_command FIRED "$hook" "after a pipe" "echo q | $run"
-	expect_command FIRED "$hook" "inside \$( )" "out=\$($run); echo \"\$out\""
-	expect_command FIRED "$hook" "inside backticks" "out=\`$run\`"
-	expect_command FIRED "$hook" "second line of a script" $'set -e\n'"$run"
-	expect_command FIRED "$hook" "leading VAR=value" "TZ=Asia/Kolkata $run"
-	expect_command FIRED "$hook" "subshell" "($run > out.json)"
-	expect_command FIRED "$hook" "behind time" "time $run"
-	expect_command FIRED "$hook" "behind timeout" "timeout 30 $run"
-	expect_command FIRED "$hook" "behind env" "env FOO=1 $run"
-	expect_command FIRED "$hook" "bash -c" "bash -c '$run'"
-	expect_command FIRED "$hook" "loop body" "for x in a b; do $run; done"
-	expect_command FIRED "$hook" "after then" "if true; then $run; fi"
-	expect_command FIRED "$hook" "if condition" "if $run; then echo ok; fi"
-	expect_command FIRED "$hook" "elif condition" "if false; then :; elif $run; then echo ok; fi"
-	expect_command FIRED "$hook" "while condition" "while $run; do sleep 1; done"
-	expect_command FIRED "$hook" "until condition, a polling loop" "until $run | grep -q idle; do sleep 2; done"
-
-	expect_command silent "$hook" "echo the phrase" "echo \"run $phrase later\""
-	expect_command silent "$hook" "grep for the phrase" "rg -n \"$phrase\" docs"
-	expect_command silent "$hook" "a permission pattern string" "printf '%s' 'Bash($phrase *)'"
-	expect_command silent "$hook" "a commit message" "git commit -m \"docs: $phrase notes\""
-	expect_command silent "$hook" "python string" "python3 -c 'print(\"$phrase\")'"
-	expect_command silent "$hook" "heredoc body, mid-line" $'cat > notes.md <<EOF\nUse '"$phrase"$' for this.\nEOF'
-	expect_command silent "$hook" "path segment" "ls ~/.claude/skills/$phrase"
-	expect_command silent "$hook" "unrelated command" "ls -la"
-
+# shellcheck disable=SC2016  # jq code: its $ names are jq variables
+# Turns tests.json into shell assignments: want[k], label[k], setup[k], says[k], session[k], payload[k].
+CASES='
+def matrix($run; $phrase): [
+	["fired", "plain", $run],
+	["fired", "after cd &&", "cd /tmp && " + $run],
+	["fired", "after a pipe", "echo q | " + $run],
+	["fired", "inside $( )", "out=$(" + $run + "); echo \"$out\""],
+	["fired", "inside backticks", "out=`" + $run + "`"],
+	["fired", "second line of a script", "set -e\n" + $run],
+	["fired", "leading VAR=value", "TZ=Asia/Kolkata " + $run],
+	["fired", "subshell", "(" + $run + " > out.json)"],
+	["fired", "behind time", "time " + $run],
+	["fired", "behind timeout", "timeout 30 " + $run],
+	["fired", "behind env", "env FOO=1 " + $run],
+	["fired", "bash -c", "bash -c '\''" + $run + "'\''"],
+	["fired", "loop body", "for x in a b; do " + $run + "; done"],
+	["fired", "after then", "if true; then " + $run + "; fi"],
+	["fired", "if condition", "if " + $run + "; then echo ok; fi"],
+	["fired", "elif condition", "if false; then :; elif " + $run + "; then echo ok; fi"],
+	["fired", "while condition", "while " + $run + "; do sleep 1; done"],
+	["fired", "until condition, a polling loop", "until " + $run + " | grep -q idle; do sleep 2; done"],
+	["silent", "echo the phrase", "echo \"run " + $phrase + " later\""],
+	["silent", "grep for the phrase", "rg -n \"" + $phrase + "\" docs"],
+	["silent", "a permission pattern string", "printf '\''%s'\'' '\''Bash(" + $phrase + " *)'\''"],
+	["silent", "a commit message", "git commit -m \"docs: " + $phrase + " notes\""],
+	["silent", "python string", "python3 -c '\''print(\"" + $phrase + "\")'\''"],
+	["silent", "heredoc body, mid-line", "cat > notes.md <<EOF\nUse " + $phrase + " for this.\nEOF"],
+	["silent", "path segment", "ls ~/.claude/skills/" + $phrase],
+	["silent", "unrelated command", "ls -la"],
 	# What a regex cannot tell apart from a real run. Asserted so that a trigger that
 	# learns to read quoting shows up here as a deliberate change.
-	expect_command FIRED "$hook" "LIMIT: after ; inside quotes" "echo \"read the doc; $phrase comes later\""
-	expect_command FIRED "$hook" "LIMIT: heredoc line starting with it" $'cat > notes.md <<EOF\n'"$run"$'\nEOF'
+	["fired", "LIMIT: after ; inside quotes", "echo \"read the doc; " + $phrase + " comes later\""],
+	["fired", "LIMIT: heredoc line starting with it", "cat > notes.md <<EOF\n" + $run + "\nEOF"]
+	] | map({want: .[0], label: .[1], command: .[2]})
+	+ [{want: "silent", label: "match only in tool_response", command: "cat notes.md", response: $run},
+	   {want: "fired", label: "first run in a session", command: $run, session: "matrix-twice"},
+	   {want: "silent", label: "second run in the same session", command: $run, session: "matrix-twice"}];
+[.[] | if .matrix == "command" then matrix(.run; .phrase)[] else . end]
+| to_entries[]
+| .key as $k | .value as $c
+| ($c.session // "case-\($k)") as $s
+| ({session_id: $s, cwd: "__CUE_TEST_DIR__",
+    tool_name: ($c.tool // (if $c.command != null then "Bash" else null end)),
+    tool_input: ($c.input // (if $c.command != null then {command: $c.command} else {} end))}
+   + (if $c.response == null then {}
+      elif ($c.response | type) == "string" then {tool_response: {stdout: $c.response}}
+      else {tool_response: $c.response} end)) as $p
+| "want[\($k)]=\($c.want // "" | @sh); label[\($k)]=\($c.label // "case \($k)" | @sh); setup[\($k)]=\($c.setup // "" | @sh); says[\($k)]=\($c.says // "" | @sh); session[\($k)]=\($s | @sh); payload[\($k)]=\($p | tojson | @sh)"
+'
 
-	check silent "$hook" "match only in tool_response" "$(bash_payload "resp-$cue_test_n" "cat notes.md" "$run")"
-	check FIRED "$hook" "first run in a session" "$(bash_payload "twice-$cue_test_n" "$run")"
-	check silent "$hook" "second run in the same session" "$(bash_payload "twice-$((cue_test_n - 1))" "$run")"
-}
+failures=0
+fail() { printf 'FAIL  %s: %s\n' "$name" "$1" >&2; failures=$((failures + 1)); cue_failures=$((cue_failures + 1)); }
 
-# rearm_check <rearm.sh path> <hook path> <command>: compact and clear re-arm, resume does not
-rearm_check() {
-	local rearm=$1 hook=$2 run=$3 sid="rearm-$cue_test_n"
-	check FIRED "$hook" "first run before re-arm" "$(bash_payload "$sid" "$run")"
-	printf '{"session_id":"%s","source":"resume"}' "$sid" | XDG_RUNTIME_DIR="$CUE_TEST_MARKS" bash "$rearm"
-	check silent "$hook" "resume does not re-arm" "$(bash_payload "$sid" "$run")"
-	printf '{"session_id":"%s","source":"compact"}' "$sid" | XDG_RUNTIME_DIR="$CUE_TEST_MARKS" bash "$rearm"
-	check FIRED "$hook" "compact re-arms" "$(bash_payload "$sid" "$run")"
-	printf '{"session_id":"%s","source":"clear"}' "$sid" | XDG_RUNTIME_DIR="$CUE_TEST_MARKS" bash "$rearm"
-	check FIRED "$hook" "clear re-arms" "$(bash_payload "$sid" "$run")"
-}
-
-# finish <test name>: reports, and exits non-zero if any case failed
-finish() {
-	if [ "$cue_test_failures" -gt 0 ]; then
-		printf '%s: %s of %s cases failed\n' "$1" "$cue_test_failures" "$cue_test_n" >&2
-		exit 1
-	fi
-	printf '%s: ok (%s cases)\n' "$1" "$cue_test_n"
-}
+for dir in "$@"; do
+	dir=${dir%/}
+	name=${dir##*/}
+	cue_failures=0
+	if [ ! -r "$dir/tests.json" ]; then fail "no tests.json in $dir"; continue; fi
+	install=$work/$name/cues
+	marks=$work/$name/marks
+	log=$marks/context-cues/errors.log
+	mkdir -p "$install" "$marks"
+	cp -R "$dir" "$install/$name"
+	want=() label=() setup=() says=() session=() payload=()
+	script=$(jq -r "$CASES" "$dir/tests.json") || { fail "tests.json does not parse"; continue; }
+	eval "$script"
+	k=0
+	while [ $k -lt ${#want[@]} ]; do
+		case_dir=$work/$name/dirs/${session[k]}
+		mkdir -p "$case_dir"
+		case ${want[k]} in fired | silent) ;; *) fail "want must be fired or silent: ${label[k]}" && k=$((k + 1)) && continue ;; esac
+		if [ -n "${setup[k]}" ] && ! (cd "$case_dir" && bash -c "${setup[k]}") >"$work/setup.log" 2>&1; then
+			fail "setup failed: ${label[k]}: $(tr '\n' ' ' <"$work/setup.log" | cut -c1-300)"
+			k=$((k + 1))
+			continue
+		fi
+		p=${payload[k]//__CUE_TEST_DIR__/$case_dir}
+		out=$(cd "$case_dir" && printf '%s' "$p" | CONTEXT_CUES_DIR=$install XDG_RUNTIME_DIR=$marks bash "$DISPATCH" 2>"$work/stderr")
+		got=silent
+		[ -n "$out" ] && got=fired
+		if [ "$got" != "${want[k]}" ]; then
+			fail "want ${want[k]}, got $got: ${label[k]}"
+		elif [ $got = fired ] && ! printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | length > 0' >/dev/null 2>&1; then
+			fail "fired without additionalContext: ${label[k]}"
+		elif [ $got = fired ] && [ -n "${says[k]}" ] &&
+			! printf '%s' "$out" | jq -e --arg s "${says[k]}" '.hookSpecificOutput.additionalContext | contains($s)' >/dev/null; then
+			fail "the prompt does not say \"${says[k]}\": ${label[k]}"
+		fi
+		[ -s "$work/stderr" ] && fail "dispatch.sh wrote to stderr: ${label[k]}: $(tr '\n' ' ' <"$work/stderr" | cut -c1-300)"
+		if [ -s "$log" ]; then
+			fail "error log: ${label[k]}: $(tr '\n' ' ' <"$log" | cut -c1-300)"
+			: >"$log"
+		fi
+		k=$((k + 1))
+	done
+	[ $cue_failures -eq 0 ] && printf '%s: ok (%s cases)\n' "$name" "${#want[@]}"
+done
+[ $failures -eq 0 ]

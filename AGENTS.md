@@ -7,10 +7,10 @@ Context Cues are Claude Code hooks that inject one piece of guidance the first t
 | Path | Installed to | What it is |
 | --- | --- | --- |
 | `.claude-plugin/` | the plugin cache | `plugin.json` and `marketplace.json`: the repo root is both the marketplace and its one plugin |
-| `hooks/` | the plugin, or `~/.claude/context-cues/` by hand | `hooks.json` (registers `rearm.sh` for the plugin), `rearm.sh` (SessionStart re-arm), `command-position.sh` (copied beside each command cue) |
-| `skills/context-cue/` | the plugin, or `~/.claude/skills/context-cue/` by hand | The skill: `SKILL.md`, `scripts/cue-test.sh`, `references/trigger-design.md`, `assets/` hook templates |
-| `examples/` | `~/.claude/context-cues/`, optional | One folder per cue: `<name>.sh` beside `<name>.cue.md` |
-| `tests/` | not installed | Fired-or-silent matrices over the examples and the command template |
+| `hooks/` | the plugin, or `~/.claude/context-cues/` by hand | `dispatch.sh` (the one PostToolUse hook, reading every cue folder), `rearm.sh` (SessionStart re-arm), `command-position.sh` (sourced by the dispatcher), `hooks.json` (registers both hooks for the plugin) |
+| `skills/context-cue/` | the plugin, or `~/.claude/skills/context-cue/` by hand | The skill: `SKILL.md`, `scripts/cue-test.sh` (runs a cue folder's `tests.json` through the dispatcher), `references/trigger-design.md` |
+| `examples/` | `~/.claude/context-cues/`, optional | One cue folder per kind of check: `cue.ini`, `prompt.md`, `tests.json`, and any run-step script |
+| `tests/` | not installed | `dispatch-test.sh` for the dispatcher itself; `run.sh` runs it and every example's `tests.json` |
 | `docs/` | not installed | Measurements behind the README's cost claims |
 
 ## Rules
@@ -18,7 +18,7 @@ Context Cues are Claude Code hooks that inject one piece of guidance the first t
 Read `CONTRIBUTING.md` before changing a script, a cue, a test or a doc, and before committing: it holds the checks to run, the portability rules, the commit format and the Markdown rule. The rules below are the ones only an agent needs.
 
 - **The skill folder is installed on its own.** Every file `SKILL.md` or its references point an agent at lives inside `skills/context-cue/`; a pointer into `examples/`, `tests/` or `docs/` breaks once installed. Link to the GitHub URL for anything outside it.
-- **Develop against a scratch install.** Copy `hooks/` and `examples/` into a temporary folder and redirect `XDG_RUNTIME_DIR`, as `tests/lib.sh` does. The live `~/.claude` belongs to whoever runs the session, and an edit there changes their sessions.
+- **Develop against a scratch install.** Point `CONTEXT_CUES_DIR` at a temporary folder of cues and `XDG_RUNTIME_DIR` at another for the markers, as `cue-test.sh` does. The live `~/.claude` belongs to whoever runs the session, and an edit there changes their sessions.
 - **A trigger change is proven red, then green.** Break the trigger on purpose, watch its matrix go red, then restore it and watch it go green. A matrix that stays green on the broken version tests nothing.
 - **Cue text stays one short paragraph.** It lands mid-task; Claude Code cuts hook output past 10,000 characters to a preview.
 - **Check the plugin with `claude plugin validate .`** after touching `.claude-plugin/` or `hooks/hooks.json`; CI checks only that the files parse and the names match.

@@ -2,13 +2,13 @@
 
 Guidance for Claude Code that arrives the moment the work it governs begins.
 
-A **context cue** is a small hook script plus a text file. The first time a session does a given kind of work, such as writing a comment in a TypeScript file or running a particular CLI, the hook adds the text to the agent's context. It stays silent for the rest of the session, and re-arms after `/compact` or `/clear`, when that text has been lost.
+A **context cue** is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. The first time a session does a given kind of work, such as writing a comment in a TypeScript file or running a particular CLI, a hook adds the text to the agent's context. It stays silent for the rest of the session, and re-arms after `/compact` or `/clear`, when that text has been lost.
 
 ## Why
 
 There are three usual places to put guidance for a coding agent, and each one fails in a predictable way:
 
-- **`AGENTS.md` and `CLAUDE.md` fade.** They load at session start. By the time the work it governs comes up, a long session has buried it.
+- **`AGENTS.md` and `CLAUDE.md` fade.** They load at session start. By the time the work they govern comes up, a long session has buried them.
 - **A hook on every edit is noise.** The same reminder after every tool call gets ignored.
 - **Path-scoped `.claude/rules` files key on a path, not on the work.** A rule loads the first time Claude reads, writes or edits a matching file, so a plain read can bring it in long before the work it governs starts. Running a command has no path, so no rule can fire on it, and a write through a Bash redirect or heredoc is not among the triggers Claude Code's docs list.
 
@@ -32,18 +32,20 @@ Sources: Claude Code's docs on [memory and rules](https://code.claude.com/docs/e
 
 ## How it works
 
-Each cue is a `PostToolUse` hook. After every matching tool call, Claude Code runs the script with a JSON payload on stdin holding `session_id`, `tool_name`, `tool_input` and `tool_response`. The script then goes through four steps:
+One `PostToolUse` hook, `dispatch.sh`, runs after every tool call with the call's JSON payload on stdin: `session_id`, `tool_name`, `tool_input` and `tool_response`. For each cue folder under `~/.claude/context-cues/` it goes through four steps:
 
-1. **Cheap reject.** It greps the raw payload for its pattern and exits if the pattern is absent. This takes microseconds and settles most calls.
-2. **Already fired?** It exits if a marker file exists at `$XDG_RUNTIME_DIR/context-cues/<session_id>/<cue-name>`.
-3. **Precise check.** `jq` reads only what the call itself names and adds: `file_path`, `new_string`, `content`, `command`. A cue about running a command matches the name only where a shell would run it, so a commit message that mentions the command stays silent.
-4. **Fire.** It writes the marker and prints `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "<cue text>"}}`. Claude Code shows the text to the agent as a system reminder beside the tool result.
+1. **Already fired?** It skips a cue whose marker file exists at `$XDG_RUNTIME_DIR/context-cues/<session_id>/<cue-name>`.
+2. **Right tool?** It reads every `cue.ini` and exits when no cue can act on this tool, so a `Read` or `Grep` call costs no `jq` run.
+3. **Checks.** One `jq` run pulls out what the call itself names and adds: `file_path`, `new_string`, `content`, `command`. Each `[check]` section in `cue.ini` must pass, in order. A command check matches the command only where a shell would run it, so a commit message that mentions the command stays silent.
+4. **Fire.** It writes the marker and prints `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "<prompt.md>"}}`. Claude Code shows the text to the agent as a system reminder beside the tool result.
 
 `rearm.sh`, a `SessionStart` hook, deletes the session's markers when the session is compacted or cleared, so every cue can fire once more.
 
+A cue that is broken, such as one with a pattern that does not compile, stays silent and is named in `$XDG_RUNTIME_DIR/context-cues/errors.log`. The other cues keep working.
+
 ## Install
 
-Requirements: `bash`, `jq` 1.6 or later, and standard `grep`, `sed` and `sort`.
+Requirements: `bash`, `jq` 1.6 or later, and standard `awk`, `grep`, `sed` and `sort`.
 
 Install the plugin from inside Claude Code (2.1.275 or later):
 
@@ -58,38 +60,17 @@ claude plugin marketplace add gbottari/context-cues
 claude plugin install context-cues@context-cues
 ```
 
-The plugin brings the `context-cue` skill and registers `rearm.sh` for you. Your own cues live in `~/.claude/context-cues/`, and each one gets its own `PostToolUse` entry in `~/.claude/settings.json`. The skill writes and registers them; to add the example cue by hand:
+The plugin brings the `context-cue` skill and registers `dispatch.sh` and `rearm.sh`. Your cues live in `~/.claude/context-cues/`, one folder each, and a new folder is live on the next tool call, with no settings to edit. The skill builds and tests them; to add an example cue by hand:
 
 ```bash
 git clone https://github.com/gbottari/context-cues.git
 mkdir -p ~/.claude/context-cues
-cp context-cues/examples/tvly-search/* context-cues/hooks/command-position.sh ~/.claude/context-cues/
+cp -R context-cues/examples/tvly-search ~/.claude/context-cues/
 ```
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/context-cues/tvly-search.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-A file-write cue such as `examples/typescript-comments` uses the matcher `Edit|Write|MultiEdit|NotebookEdit|Bash`.
 
 ### Without the plugin
 
-Copy the helpers and the skill, then register `rearm.sh` yourself next to your cues:
+Copy the hooks and the skill, then register the two hooks in `~/.claude/settings.json`:
 
 ```bash
 git clone https://github.com/gbottari/context-cues.git
@@ -102,6 +83,18 @@ cp -R skills/context-cue ~/.claude/skills/
 ```json
 {
   "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/context-cues/dispatch.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "compact|clear",
@@ -120,7 +113,27 @@ cp -R skills/context-cue ~/.claude/skills/
 
 ## Writing a cue
 
-Ask Claude Code for one, for example: "make a context cue that reminds you how we name migrations, the first time you write one." The `context-cue` skill walks the agent through it: write the text, choose the triggers, build the hook from one of its two templates (`file-cue-template.sh`, `command-cue-template.sh`), register it, and prove it with a test matrix built on the skill's `cue-test.sh`. All three files install with the skill, so the agent has them without this repository.
+Ask Claude Code for one, for example: "make a context cue that reminds you how we name migrations, the first time you write one." The `context-cue` skill walks the agent through it: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
+
+A cue that fires the first time a session adds a comment to a TypeScript file:
+
+```ini
+[check]
+uses = file-write
+path = \.tsx?([^[:alnum:]._-]|$)
+match = (^|[^:])//|/\*
+```
+
+`cue.ini` holds one `[check]` section per condition, and all of them must pass. Each uses a built-in check, or `run`, a script of your own in the cue folder:
+
+| Check | Passes when |
+| --- | --- |
+| `uses = command` | a Bash call runs the command `match` names, where a shell would run it |
+| `uses = file-write` | the call writes a file matching `path`, by any tool or a Bash redirect, and adds a line matching `match` |
+| `uses = tool-input` | the call is one of `tools`, and the input `field` matches `match` |
+| `run = <script>` | the script, given the call on stdin, exits 0. It can return a key, so the cue fires once per key, and values for `${NAME}` in `prompt.md` |
+
+A `[suppress]` section takes the same checks. When it matches, the cue is spent for the session and says nothing. Values run raw to the end of the line, so patterns need no escaping, and comments are whole lines starting with `#` or `;`. [`SKILL.md`](skills/context-cue/SKILL.md) has every key.
 
 The hard part is the trigger. A cue gets one shot per session, and every wrong trigger spends that shot on the wrong call without any error. [`skills/context-cue/references/trigger-design.md`](skills/context-cue/references/trigger-design.md) covers the five ways this happens.
 
@@ -128,8 +141,8 @@ The hard part is the trigger. A cue gets one shot per session, and every wrong t
 
 | Example | Fires on | Shows |
 | --- | --- | --- |
-| [`typescript-comments`](examples/typescript-comments) | the first comment a session adds to a `.ts`/`.tsx` file, through Edit, Write or Bash | the file-write template: path gate, added text only, novelty check |
-| [`tvly-search`](examples/tvly-search) | the first `tvly search` a session runs | a command cue, and extending a third-party skill |
+| [`tvly-search`](examples/tvly-search) | the first `tvly search` a session runs | `command`, and extending a third-party skill |
+| [`typescript-comments`](examples/typescript-comments) | the first comment a session adds to a `.ts`/`.tsx` file, through Edit, Write or Bash | `file-write` with `match`: only added text, and only text that is new |
 
 ## Tests
 
@@ -137,7 +150,7 @@ The hard part is the trigger. A cue gets one shot per session, and every wrong t
 bash tests/run.sh
 ```
 
-The tests copy the hooks and examples into a temporary folder laid out like `~/.claude/context-cues`, then run each cue against a matrix of payloads, using the same `cue-test.sh` helpers the skill gives to agents. Each payload is marked to fire or to stay silent, and each case is one of the traps in `trigger-design.md`. The matrix also covers once-per-session behaviour and re-arming.
+`tests/dispatch-test.sh` checks the dispatcher itself: the `cue.ini` dialect, the run-step contract, two cues on one call, re-arming, and a broken cue staying silent without silencing the others. Then each example's `tests.json` runs through the skill's `cue-test.sh`, the same tool the skill gives to agents: the cue is installed alone in a temporary folder, and each case is marked to fire or to stay silent. Each case is one of the traps in `trigger-design.md`, and the cases also cover once-per-session behaviour.
 
 ## Platforms
 
@@ -145,7 +158,7 @@ CI runs the full test suite on Linux, macOS and Windows for every push.
 
 - **Linux:** used daily.
 - **macOS:** the tests pass with the system bash 3.2.57 and BSD grep. Install `jq` if your macOS version lacks it (`brew install jq`).
-- **Windows:** the tests pass under the GitHub runner's bash. For real use, Claude Code needs Git for Windows, because it runs hooks in Git Bash when Git Bash is installed and in PowerShell when it is not. Install `jq` separately (`winget install jqlang.jq`). Commands the agent runs through the PowerShell tool reach hooks as `tool_name: "PowerShell"`, so a command cue that should see them needs the matcher `Bash|PowerShell`. The command-position check assumes bash syntax.
+- **Windows:** the tests pass under the GitHub runner's bash. For real use, Claude Code needs Git for Windows, because it runs hooks in Git Bash when Git Bash is installed and in PowerShell when it is not. Install `jq` separately (`winget install jqlang.jq`). Commands the agent runs through the PowerShell tool reach hooks as `tool_name: "PowerShell"`, so a command check that should see them needs `tools = Bash|PowerShell`. The command-position check assumes bash syntax.
 - **WSL:** same as Linux.
 
 ## Limits
@@ -157,7 +170,7 @@ CI runs the full test suite on Linux, macOS and Windows for every push.
 
 ## Cost
 
-No tokens until a cue fires. Seven cues on `Bash` added 17.5 ms per call on Linux with Claude Code 2.1.296, because hooks on one call run in parallel. [`docs/performance.md`](docs/performance.md) has the measurements.
+No tokens until a cue fires. The dispatcher is one process per tool call, whatever the number of cues. With the five examples installed, timed in a shell loop on Linux, it took about 8 ms on a call no cue acts on and 15 ms on a Bash call. [`docs/performance.md`](docs/performance.md) has the measurements and what they leave out.
 
 ## How this was built
 

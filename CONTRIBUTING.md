@@ -8,19 +8,19 @@ Run the tests and the linters before opening a pull request. CI runs the same ch
 
 ```bash
 bash tests/run.sh
-shellcheck -x hooks/*.sh examples/*/*.sh skills/context-cue/*/*.sh tests/*.sh
+shellcheck -x hooks/*.sh examples/*/*.sh skills/context-cue/scripts/*.sh tests/*.sh
 npx prettier@3.9.10 --check '**/*.md'
 ```
 
-A new or changed cue needs fired-or-silent test cases built with `skills/context-cue/scripts/cue-test.sh`: one case for each trap in `skills/context-cue/references/trigger-design.md`, plus once-per-session and re-arming. A command cue gets `command_matrix` and `rearm_check`; `tests/command-cue-test.sh` shows both. A change to a trigger should also be shown to fail its matrix when you break the trigger on purpose, since a matrix that cannot fail proves nothing.
+A new or changed example needs fired-or-silent cases in its `tests.json`, which `skills/context-cue/scripts/cue-test.sh` runs: one case for each trap in `skills/context-cue/references/trigger-design.md`, plus once per session. A command cue gets the command matrix; `examples/tvly-search/tests.json` shows it. A change to the dispatcher gets a case in `tests/dispatch-test.sh`. Show a new case failing when you break the code it covers on purpose, since a case that cannot fail proves nothing.
 
 ## Keep the scripts portable
 
 Cues run inside Claude Code on every tool call, on Linux, on macOS with the system bash 3.2, and on Windows under Git Bash.
 
-- Write hooks in bash, with `jq` 1.6 or later as the only other dependency. No Python, Node or other runtimes in anything a user installs.
+- Write hooks in bash, with `jq` 1.6 or later and POSIX `awk` as the only other dependencies. No Python, Node or other runtimes in anything a user installs.
 - Use portable `grep -E`. Spell word boundaries out, as in `(^|[^[:alnum:]_-])tee[[:space:]]`, because `\b`, `\w` and `grep -P` are missing from some grep builds.
-- Keep hooks cheap: a reject-only grep over the raw payload first, then the marker check, and only then `jq`.
+- Keep the dispatcher cheap: it runs on every tool call. Check markers and the tool name before `jq`, and match short text with bash's `=~` rather than starting `grep`.
 
 ## Commits
 

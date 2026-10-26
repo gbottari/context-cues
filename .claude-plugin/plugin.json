@@ -1,8 +1,8 @@
 {
   "name": "context-cues",
   "displayName": "Context Cues",
-  "version": "0.1.0",
-  "description": "Guidance for Claude Code that arrives the moment the work it governs begins: a skill for building once-per-session cues, and the hook that re-arms them after /compact and /clear",
+  "version": "0.2.0",
+  "description": "Guidance for Claude Code that arrives the moment the work it governs begins: a skill for building once-per-session cues, the hook that runs them, and the hook that re-arms them after /compact and /clear",
   "author": {
     "name": "Giulio Bottari",
     "url": "https://github.com/gbottari"

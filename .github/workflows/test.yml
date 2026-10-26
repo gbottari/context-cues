@@ -21,6 +21,8 @@ jobs:
           bash --version | head -1
           jq --version
           grep --version | head -1 || true
+          awk --version 2>/dev/null | head -1 || awk -W version 2>/dev/null | head -1 || true
+          git --version
       - name: Tests
         run: bash tests/run.sh
 
@@ -45,3 +47,4 @@ jobs:
           jq -e '.name and .owner.name and (.plugins | length > 0)' .claude-plugin/marketplace.json
           test "$(jq -r .name .claude-plugin/plugin.json)" = "$(jq -r '.plugins[0].name' .claude-plugin/marketplace.json)"
           jq -e '.hooks.SessionStart[0].hooks[0].command | contains("rearm.sh")' hooks/hooks.json
+          jq -e '.hooks.PostToolUse[0] | .matcher == "*" and (.hooks[0].command | contains("dispatch.sh"))' hooks/hooks.json
