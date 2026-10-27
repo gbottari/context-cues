@@ -117,7 +117,8 @@ else
 		ns++
 		for (k in names) sec[ns, k] = cur[k]
 		sec[ns, "kind"] = kind
-		t = section_tools(cur["uses"], cur["tools"])
+		# "" makes them values: gawk 5.3 crashes on an unset element passed to a function
+		t = section_tools(cur["uses"] "", cur["tools"] "")
 		if (kind == "suppress") { if (t != "") tools = tools "|" t }
 		else {
 			checks++
