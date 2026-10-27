@@ -61,18 +61,21 @@ For a skill you don't own, `examples/tvly-search` shows how: a cue on `tvly sear
 
 Sources: Claude Code's docs on [memory and rules](https://code.claude.com/docs/en/memory.md), [what survives compaction](https://code.claude.com/docs/en/context-window.md), [Bash reads that count as a read](https://code.claude.com/docs/en/tools-reference.md), [skills](https://code.claude.com/docs/en/skills.md) and [hooks](https://code.claude.com/docs/en/hooks.md), as of Claude Code 2.1.310. The cue column is what this repository's tests assert.
 
-## How it works
+## Limits
 
-One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool cues check (Bash, PowerShell, the file-editing tools, Agent and Skill) with the call's JSON payload on stdin: `session_id`, `tool_name`, `tool_input` and `tool_response`. For each cue folder under `~/.claude/context-cues/` it goes through four steps:
+- **The cue arrives just after the first act, not before it.** Context from a `PreToolUse` hook also reaches the agent beside the tool result, so it lands no sooner. The first act of a session goes unguided; every later one is covered.
+- **Subagents do not get cues.** A subagent shares its parent's `session_id`, so a cue that fired for the parent counts as fired for the subagent, which never saw the text.
+- **A regex cannot see quoting.** Text after `;` inside quotes, or a heredoc line that starts with the command, can still fire a command cue.
+- **Cue text is capped at 10,000 characters** by Claude Code. Longer output is cut to a preview of the first 2,000 characters, so a long cue points to a doc instead.
 
-1. **Already fired?** It skips a cue whose marker file exists at `$XDG_RUNTIME_DIR/context-cues/<session_id>/<cue-name>`.
-2. **Right tool?** It reads every `cue.ini` and exits when no cue can act on this tool, so a `Read` or `Grep` call costs no `jq` run.
-3. **Checks.** One `jq` run pulls out what the call itself names and adds: `file_path`, `new_string`, `content`, `command`. Each `[check]` section in `cue.ini` must pass, in order. A command check matches the command only where a shell would run it, so a commit message that mentions the command stays silent.
-4. **Fire.** It writes the marker and prints `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "<prompt.md>"}}`. Claude Code shows the text to the agent as a system reminder beside the tool result. When several cues fire on one call, their texts arrive in one reminder, in the order of their folder names.
+## Platforms
 
-`rearm.sh`, a `SessionStart` hook, deletes the session's markers when the session is compacted or cleared, so every cue can fire once more.
+CI runs the full test suite on Linux, macOS and Windows for every push.
 
-A cue that is broken, such as one with a pattern that does not compile, stays silent and is named in `$XDG_RUNTIME_DIR/context-cues/errors.log`. The other cues keep working.
+- **Linux:** used daily.
+- **macOS:** the tests pass with the system bash 3.2.57 and BSD grep. Install `jq` if your macOS version lacks it (`brew install jq`).
+- **Windows:** the tests pass under the GitHub runner's bash. For real use, Claude Code needs Git for Windows, because it runs hooks in Git Bash when Git Bash is installed and in PowerShell when it is not. Install `jq` separately (`winget install jqlang.jq`). Commands the agent runs through the PowerShell tool reach hooks as `tool_name: "PowerShell"`, so a command check that should see them needs `tools = Bash|PowerShell`. The command-position check assumes bash syntax.
+- **WSL:** same as Linux.
 
 ## Writing a cue
 
@@ -112,33 +115,22 @@ One example per kind of check, each a cue the author runs.
 | [`no-remote`](examples/no-remote) | the first commit in a git repository with no remote, once per repository | `run`, a key per repository, and `${REPO}` in the prompt |
 | [`agent-docs`](examples/agent-docs) | the first write to a skill, `AGENTS.md` or `CLAUDE.md`, unless the writing skill it points to is already loaded | `[suppress]`, and `exclude` |
 
-## Tests
-
-```bash
-bash tests/run.sh
-```
-
-`tests/dispatch-test.sh` checks the dispatcher itself: the `cue.ini` dialect, the run-step contract, two cues on one call, re-arming, and a broken cue staying silent without silencing the others. Then each example's `tests.json` runs through the skill's `cue-test.sh`, the same tool the skill gives to agents: the cue is installed alone in a temporary folder, and each case is marked to fire or to stay silent. Each case is one of the traps in `trigger-design.md`, and the cases also cover once-per-session behaviour.
-
-## Platforms
-
-CI runs the full test suite on Linux, macOS and Windows for every push.
-
-- **Linux:** used daily.
-- **macOS:** the tests pass with the system bash 3.2.57 and BSD grep. Install `jq` if your macOS version lacks it (`brew install jq`).
-- **Windows:** the tests pass under the GitHub runner's bash. For real use, Claude Code needs Git for Windows, because it runs hooks in Git Bash when Git Bash is installed and in PowerShell when it is not. Install `jq` separately (`winget install jqlang.jq`). Commands the agent runs through the PowerShell tool reach hooks as `tool_name: "PowerShell"`, so a command check that should see them needs `tools = Bash|PowerShell`. The command-position check assumes bash syntax.
-- **WSL:** same as Linux.
-
-## Limits
-
-- **The cue arrives just after the first act, not before it.** Context from a `PreToolUse` hook also reaches the agent beside the tool result, so it lands no sooner. The first comment of a session goes unguided; every later one is covered.
-- **Subagents do not get cues.** A subagent shares its parent's `session_id`, so the marker says the cue already fired, but the subagent never saw the text.
-- **A regex cannot see quoting.** Text after `;` inside quotes, or a heredoc line that starts with the command, can still fire a command cue.
-- **Cue text is capped at 10,000 characters** by Claude Code. Longer output is cut to a preview of the first 2,000 characters, so a long cue points to a doc instead.
-
 ## Cost
 
-No tokens until a cue fires. The dispatcher is one process, started after each call of a tool cues check; Read, Grep and Glob start nothing. Measured inside Claude Code on Linux, it adds about 5 ms to such a call with no cues installed, and about 17 ms to a Bash call with the five examples. [`docs/performance.md`](docs/performance.md) has the measurements.
+No tokens until a cue fires. One hook process starts after each call of a tool cues check; Read, Grep and Glob start nothing. Measured inside Claude Code on Linux, it adds about 5 ms to such a call with no cues installed, and about 17 ms to a Bash call with the five examples. [`docs/performance.md`](docs/performance.md) has the measurements.
+
+## How it works
+
+One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool cues check (Bash, PowerShell, the file-editing tools, Agent and Skill) with the call's JSON payload on stdin: `session_id`, `tool_name`, `tool_input` and `tool_response`. For each cue folder under `~/.claude/context-cues/` it goes through four steps:
+
+1. **Already fired?** It skips a cue whose marker file exists at `$XDG_RUNTIME_DIR/context-cues/<session_id>/<cue-name>`.
+2. **Right tool?** It reads every `cue.ini` and exits when no cue can act on this tool, so a `Read` or `Grep` call costs no `jq` run.
+3. **Checks.** One `jq` run pulls out what the call itself names and adds: `file_path`, `new_string`, `content`, `command`. Each `[check]` section in `cue.ini` must pass, in order. A command check matches the command only where a shell would run it, so a commit message that mentions the command stays silent.
+4. **Fire.** It writes the marker and prints `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "<prompt.md>"}}`. Claude Code shows the text to the agent as a system reminder beside the tool result. When several cues fire on one call, their texts arrive in one reminder, in the order of their folder names.
+
+`rearm.sh`, a `SessionStart` hook, deletes the session's markers when the session is compacted or cleared, so every cue can fire once more.
+
+A cue that is broken, such as one with a pattern that does not compile, stays silent and is named in `$XDG_RUNTIME_DIR/context-cues/errors.log`. The other cues keep working.
 
 ## How this was built
 

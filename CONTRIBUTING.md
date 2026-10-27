@@ -12,6 +12,8 @@ shellcheck -x hooks/*.sh examples/*/*.sh skills/context-cue/scripts/*.sh tests/*
 npx prettier@3.9.10 --check '**/*.md'
 ```
 
+`tests/run.sh` runs `tests/dispatch-test.sh`, which checks the dispatcher itself: the `cue.ini` dialect, the run-step contract, two cues on one call, re-arming, and a broken cue staying silent without silencing the others. Then it runs each example's `tests.json` through the skill's `cue-test.sh`, the same tool the skill gives to agents: the cue is installed alone in a temporary folder, and each case is marked to fire or to stay silent.
+
 A new or changed example needs fired-or-silent cases in its `tests.json`, which `skills/context-cue/scripts/cue-test.sh` runs: one case for each trap in `skills/context-cue/references/trigger-design.md`, plus once per session. A command cue gets the command matrix; `examples/tvly-search/tests.json` shows it. A change to the dispatcher gets a case in `tests/dispatch-test.sh`. Show a new case failing when you break the code it covers on purpose, since a case that cannot fail proves nothing.
 
 ## Keep the scripts portable
