@@ -23,29 +23,6 @@ jobs:
           grep --version | head -1 || true
           awk --version 2>/dev/null | head -1 || awk -W version 2>/dev/null | head -1 || true
           git --version
-      - name: Diagnose the CR in joined cue texts (temporary)
-        if: runner.os == 'Windows'
-        run: |
-          echo "--- join lines of dispatch.sh as checked out"
-          grep -n -A2 'text="\$text' hooks/dispatch.sh | od -c | head -8
-          d=$(mktemp -d)
-          for c in one two; do
-            mkdir -p "$d/$c"
-            printf '[check]\nuses = tool-input\ntools = Probe\nmatch = go\n' >"$d/$c/cue.ini"
-            printf '%s says hi\n' "$c" >"$d/$c/prompt.md"
-          done
-          printf '%s' '{"session_id":"diag","tool_name":"Probe","tool_input":{"q":"go"},"cwd":"/"}' |
-            CONTEXT_CUES_DIR=$d XDG_RUNTIME_DIR=$d/m bash hooks/dispatch.sh >"$d/raw.json"
-          echo "--- dispatcher raw output"
-          od -c "$d/raw.json" | head -12
-          echo "--- jq -r of it, raw bytes"
-          jq -r .hookSpecificOutput.additionalContext <"$d/raw.json" | od -c | head -6
-          echo "--- jq -r of it, through \$( )"
-          out=$(jq -r .hookSpecificOutput.additionalContext <"$d/raw.json"); printf '%q\n' "$out"
-          echo "--- jq -r of a two-line string, through \$( )"
-          v=$(jq -rn '"a\nb"'); printf '%q\n' "$v"
-          echo "--- jq -n --arg with a newline, raw bytes"
-          jq -cn --arg t $'a\n\nb' '{t:$t}' | od -c | head -4
       - name: Tests
         run: bash tests/run.sh
 
