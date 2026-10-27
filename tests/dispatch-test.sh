@@ -60,6 +60,7 @@ cue "$T" two "$(printf '[check]\nuses = tool-input\ntools = Probe\nmatch = go\n'
 out=$(dispatch "$T" "$(probe t1 go)")
 expect "first of two cues" "one says hi" "$out"
 expect "second of two cues" "two says hi" "$out"
+expect "texts joined in folder-name order" $'one says hi\n\ntwo says hi' "$out"
 expect "a tool no cue names" - "$(dispatch "$T" "$(jq -cn '{session_id: "t2", tool_name: "Read", tool_input: {q: "go"}}')")"
 
 # --- the run step: payload on stdin, CUE_* in env, exit 1 is silence, key and vars ---

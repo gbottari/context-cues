@@ -37,7 +37,7 @@ One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool cues check
 1. **Already fired?** It skips a cue whose marker file exists at `$XDG_RUNTIME_DIR/context-cues/<session_id>/<cue-name>`.
 2. **Right tool?** It reads every `cue.ini` and exits when no cue can act on this tool, so a `Read` or `Grep` call costs no `jq` run.
 3. **Checks.** One `jq` run pulls out what the call itself names and adds: `file_path`, `new_string`, `content`, `command`. Each `[check]` section in `cue.ini` must pass, in order. A command check matches the command only where a shell would run it, so a commit message that mentions the command stays silent.
-4. **Fire.** It writes the marker and prints `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "<prompt.md>"}}`. Claude Code shows the text to the agent as a system reminder beside the tool result.
+4. **Fire.** It writes the marker and prints `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "<prompt.md>"}}`. Claude Code shows the text to the agent as a system reminder beside the tool result. When several cues fire on one call, their texts arrive in one reminder, in the order of their folder names.
 
 `rearm.sh`, a `SessionStart` hook, deletes the session's markers when the session is compacted or cleared, so every cue can fire once more.
 
