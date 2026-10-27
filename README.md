@@ -4,16 +4,18 @@
 
 Just-in-time rules for Claude Code: each one fires once per session, the first time the agent does the work it is about.
 
-**Status:** 0.x, used daily by the author and tested on Linux, macOS and Windows. The `cue.ini` format may still change before 1.0.
+**Status:** 0.x, MIT-licensed, used daily by the author and tested on Linux, macOS and Windows. The `cue.ini` format may still change before 1.0.
 
 A **context cue** is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. Use one to:
 
 - **Keep a rule from fading in a long session.** `CLAUDE.md` loads at session start, and hours of work bury it. A cue arrives right after the first command or edit it governs, while that work is in front of the agent.
 - **Add your own guidance to a skill you don't own.** Write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly.
 
+A cue can't guide the first act itself, and subagents don't get cues; [Limits](#limits) has why.
+
 A cue fires again after `/compact` or `/clear`, when its text has been lost.
 
-The first `tvly search` of a session brings this into the agent's context, beside the search results ([`examples/tvly-search`](examples/tvly-search)):
+The first `tvly search` of a session brings this into the agent's context, beside the search results, as a system reminder ([`examples/tvly-search`](examples/tvly-search)):
 
 ```text
 PostToolUse:Bash hook additional context: Reading `tvly search` results:
@@ -117,11 +119,11 @@ One example per kind of check, each a cue the author runs.
 
 ## Cost
 
-No tokens until a cue fires. One hook process starts after each call of a tool cues check; Read, Grep and Glob start nothing. Measured inside Claude Code on Linux, it adds about 5 ms to such a call with no cues installed, and about 17 ms to a Bash call with the five examples. [`docs/performance.md`](docs/performance.md) has the measurements.
+No tokens until a cue fires. One hook process starts after each call of a tool some cue checks (Bash, PowerShell, the file-editing tools, Agent and Skill); Read, Grep and Glob start nothing. Measured inside Claude Code on Linux, it adds about 5 ms to such a call with no cues installed, and about 17 ms to a Bash call with the five examples. [`docs/performance.md`](docs/performance.md) has the measurements.
 
 ## How it works
 
-One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool cues check (Bash, PowerShell, the file-editing tools, Agent and Skill) with the call's JSON payload on stdin: `session_id`, `tool_name`, `tool_input` and `tool_response`. For each cue folder under `~/.claude/context-cues/` it goes through four steps:
+One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool some cue checks (Bash, PowerShell, the file-editing tools, Agent and Skill) with the call's JSON payload on stdin: `session_id`, `tool_name`, `tool_input` and `tool_response`. For each cue folder under `~/.claude/context-cues/` it goes through four steps:
 
 1. **Already fired?** It skips a cue whose marker file exists at `$XDG_RUNTIME_DIR/context-cues/<session_id>/<cue-name>`.
 2. **Right tool?** It reads every `cue.ini` and exits when no cue can act on this tool, so a `Read` or `Grep` call costs no `jq` run.
