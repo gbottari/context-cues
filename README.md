@@ -70,13 +70,13 @@ cp -R context-cues/examples/tvly-search ~/.claude/context-cues/
 
 ### Without the plugin
 
-Copy the hooks and the skill, then register the two hooks in `~/.claude/settings.json`:
+Copy the hooks and the skill, then register the two hooks in `~/.claude/settings.json`. The hooks get their own folder, so `~/.claude/context-cues/` holds only your cues:
 
 ```bash
 git clone https://github.com/gbottari/context-cues.git
 cd context-cues
-mkdir -p ~/.claude/context-cues ~/.claude/skills
-cp hooks/*.sh ~/.claude/context-cues/
+mkdir -p ~/.claude/hooks/context-cues ~/.claude/context-cues ~/.claude/skills
+cp hooks/*.sh ~/.claude/hooks/context-cues/
 cp -R skills/context-cue ~/.claude/skills/
 ```
 
@@ -89,7 +89,7 @@ cp -R skills/context-cue ~/.claude/skills/
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/context-cues/dispatch.sh",
+            "command": "bash ~/.claude/hooks/context-cues/dispatch.sh",
             "timeout": 10
           }
         ]
@@ -101,7 +101,7 @@ cp -R skills/context-cue ~/.claude/skills/
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/context-cues/rearm.sh",
+            "command": "bash ~/.claude/hooks/context-cues/rearm.sh",
             "timeout": 5
           }
         ]

@@ -27,7 +27,7 @@ set -u
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 DISPATCH=${CUE_DISPATCH:-}
 if [ -z "$DISPATCH" ]; then
-	for d in "$here/../../../hooks/dispatch.sh" "$HOME/.claude/context-cues/dispatch.sh"; do
+	for d in "$here/../../../hooks/dispatch.sh" "$HOME/.claude/hooks/context-cues/dispatch.sh"; do
 		[ -r "$d" ] && DISPATCH=$d && break
 	done
 fi
