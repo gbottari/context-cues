@@ -1,8 +1,41 @@
 # Context Cues
 
-Guidance for Claude Code that arrives the moment the work it governs begins.
+[![test](https://github.com/gbottari/context-cues/actions/workflows/test.yml/badge.svg)](https://github.com/gbottari/context-cues/actions/workflows/test.yml)
 
-A **context cue** is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. The first time a session does a given kind of work, such as writing a comment in a TypeScript file or running a particular CLI, a hook adds the text to the agent's context. It stays silent for the rest of the session, and re-arms after `/compact` or `/clear`, when that text has been lost.
+Just-in-time rules for Claude Code: each one fires once per session, the first time the agent does the work it is about.
+
+**Status:** 0.x, used daily by the author and tested on Linux, macOS and Windows. The `cue.ini` format may still change before 1.0.
+
+A **context cue** is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. Use one to:
+
+- **Keep a rule from fading in a long session.** `CLAUDE.md` loads at session start, and hours of work bury it. A cue arrives right after the first command or edit it governs, while that work is in front of the agent.
+- **Add your own guidance to a skill you don't own.** Write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly.
+
+A cue fires again after `/compact` or `/clear`, when its text has been lost.
+
+The first `tvly search` of a session brings this into the agent's context, beside the search results ([`examples/tvly-search`](examples/tvly-search)):
+
+```text
+PostToolUse:Bash hook additional context: Reading `tvly search` results:
+
+- Read the top `score` before the results. Relevant hits usually score 0.65–0.90. A top score under about 0.1 means the search failed: …
+```
+
+Later searches in the same session add nothing.
+
+## Install
+
+Requirements: Claude Code 2.1.275 or later, `bash`, and `jq` 1.6 or later.
+
+In Claude Code:
+
+```
+/plugin install context-cues --marketplace gbottari/context-cues
+```
+
+The plugin brings the hooks and the `context-cue` skill. To make your first cue, ask Claude Code: "make a context cue that reminds you how we name migrations, the first time you write one." Your cues live in `~/.claude/context-cues/`, one folder each, and a new folder is live on the next tool call.
+
+[`docs/install.md`](docs/install.md) covers installing from your shell, adding an example cue by hand, and installing without the plugin.
 
 ## Why
 
@@ -12,9 +45,7 @@ There are three usual places to put guidance for a coding agent, and each one fa
 - **A hook on every edit is noise.** The same reminder after every tool call gets ignored.
 - **Path-scoped `.claude/rules` files key on a path, not on the work.** A rule loads the first time Claude reads, writes or edits a matching file, so a plain read can bring it in long before the work it governs starts. Running a command has no path, so no rule can fire on it, and a write through a Bash redirect or heredoc is not among the triggers Claude Code's docs list.
 
-A cue fires once, right after the first tool call that does the work, while the work is still in front of the agent.
-
-Cues also extend skills you do not own. To add your own guidance to a third-party skill, write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly. `examples/tvly-search` does this for Tavily's search skill.
+For a skill you don't own, `examples/tvly-search` shows how: a cue on `tvly search` adds guidance to Tavily's search skill.
 
 ## Compared with the built-in options
 
@@ -43,77 +74,9 @@ One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool cues check
 
 A cue that is broken, such as one with a pattern that does not compile, stays silent and is named in `$XDG_RUNTIME_DIR/context-cues/errors.log`. The other cues keep working.
 
-## Install
-
-Requirements: `bash`, `jq` 1.6 or later, and standard `awk`, `grep`, `sed` and `sort`.
-
-Install the plugin from inside Claude Code (2.1.275 or later):
-
-```
-/plugin install context-cues --marketplace gbottari/context-cues
-```
-
-Or from your shell, in two steps:
-
-```bash
-claude plugin marketplace add gbottari/context-cues
-claude plugin install context-cues@context-cues
-```
-
-The plugin brings the `context-cue` skill and registers `dispatch.sh` and `rearm.sh`. Your cues live in `~/.claude/context-cues/`, one folder each, and a new folder is live on the next tool call, with no settings to edit. The skill builds and tests them; to add an example cue by hand:
-
-```bash
-git clone https://github.com/gbottari/context-cues.git
-mkdir -p ~/.claude/context-cues
-cp -R context-cues/examples/tvly-search ~/.claude/context-cues/
-```
-
-### Without the plugin
-
-Copy the hooks and the skill, then register the two hooks in `~/.claude/settings.json`. The hooks get their own folder, so `~/.claude/context-cues/` holds only your cues:
-
-```bash
-git clone https://github.com/gbottari/context-cues.git
-cd context-cues
-mkdir -p ~/.claude/hooks/context-cues ~/.claude/context-cues ~/.claude/skills
-cp hooks/*.sh ~/.claude/hooks/context-cues/
-cp -R skills/context-cue ~/.claude/skills/
-```
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/context-cues/dispatch.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "compact|clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/context-cues/rearm.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
 ## Writing a cue
 
-Ask Claude Code for one, for example: "make a context cue that reminds you how we name migrations, the first time you write one." The `context-cue` skill walks the agent through it: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
+The `context-cue` skill walks the agent through a new cue: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
 
 A cue that fires the first time a session adds a comment to a TypeScript file:
 
