@@ -31,7 +31,8 @@ expect() {
 	if [ "$2" = - ]; then
 		[ -z "$3" ] || fail "$1: want silence, got: $3"
 	else
-		case $3 in *"$2"*) ;; *) fail "$1: want \"$2\", got: ${3:-silence}" ;; esac
+		# %q spells out characters a log hides, such as a carriage return
+		case $3 in *"$2"*) ;; *) fail "$1: want $(printf %q "$2"), got: $(printf %q "${3:-silence}")" ;; esac
 	fi
 }
 log_lines() {
