@@ -17,10 +17,11 @@ cue() {
 	printf '%s\n' "${4:-$2 says hi}" >"$1/$2/prompt.md"
 }
 
-# dispatch <cues dir> <payload>: prints the injected text, or nothing
+# dispatch <cues dir> <payload>: prints the injected text, or nothing. jq on Windows writes
+# the line breaks of -r output as \r\n, which tr takes back out.
 dispatch() {
 	printf '%s' "$2" | CONTEXT_CUES_DIR=$1 XDG_RUNTIME_DIR=$work/marks bash "$repo/hooks/dispatch.sh" 2>>"$work/stderr" |
-		jq -r '.hookSpecificOutput.additionalContext'
+		jq -r '.hookSpecificOutput.additionalContext' | tr -d '\r'
 }
 
 probe() { jq -cn --arg s "$1" --arg q "$2" '{session_id: $s, tool_name: "Probe", tool_input: {q: $q}, cwd: "/"}'; }
@@ -78,6 +79,32 @@ expect "same key, same session" - "$(dispatch "$R" "$(probe r1 ann)")"
 expect "another key, same session" "Hello bob" "$(dispatch "$R" "$(probe r1 bob)")"
 expect "exit 1 keeps it silent" - "$(dispatch "$R" "$(probe r2 skip)")"
 expect "exit 1 is not an error" 0 "$(log_lines runner)"
+
+# --- no carriage return reaches the agent: not from a prompt.md saved with CRLF line
+# endings, and not from jq on Windows, which writes every line break of -r output as \r\n.
+# These read the hook's JSON as Claude Code does, with no jq -r of their own in between. ---
+# dispatch_json <cues dir> <payload>: prints the hook's JSON output
+dispatch_json() {
+	printf '%s' "$2" | CONTEXT_CUES_DIR=$1 XDG_RUNTIME_DIR=$work/marks bash "$repo/hooks/dispatch.sh" 2>>"$work/stderr"
+}
+# no_cr <label> <hook JSON>: the JSON fired and its text carries no \r
+no_cr() {
+	n=$((n + 1))
+	case $2 in
+	'') fail "$1: want fired, got silence" ;;
+	*'\r'*) fail "$1: a carriage return reaches the agent: $(printf %q "$2")" ;;
+	esac
+}
+L=$work/crlf
+cue "$L/a" crlf "$(printf '[check]\nuses = tool-input\ntools = Probe\nmatch = go\n')" "$(printf 'line one\r\nline two\r')"
+no_cr "a prompt.md with CRLF line endings" "$(dispatch_json "$L/a" "$(probe l1 go)")"
+cue "$L/b" multiline "$(printf '[check]\nrun = check.sh\n')" "$(printf 'Hello ${WHO}.\nSecond line.')"
+printf '%s\n' "printf '{\"vars\": {\"WHO\": \"ann\"}}'" >"$L/b/multiline/check.sh"
+no_cr "a prompt over two lines, filled from vars" "$(dispatch_json "$L/b" "$(probe l2 go)")"
+# A pattern anchored with $ must still match a line of a multi-line command.
+cue "$L/c" anchored "$(printf '[check]\nuses = command\nmatch = deploy-now$\n')"
+expect "a \$-anchored command on the first of two lines" "anchored says hi" \
+	"$(dispatch "$L/c" "$(jq -cn '{session_id: "l3", tool_name: "Bash", tool_input: {command: "deploy-now\necho done"}}')")"
 
 # --- a broken cue: silent, logged once per session, the others unaffected ---
 B=$work/broken
