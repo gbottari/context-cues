@@ -28,6 +28,10 @@ Cues run inside Claude Code on every call of a tool they check, on Linux, on mac
 
 Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix(skill):`, `docs:`, `test:`, `refactor:`. The subject says what the change does; the body, when there is one, says why.
 
+## Releases
+
+A change reaches installed plugins only when the `version` in `.claude-plugin/plugin.json` goes up: `claude plugin update` compares versions and answers "already at the latest version" otherwise. Bump it, tag the commit `vX.Y.Z`, and publish a GitHub release with the same tag.
+
 ## Markdown
 
 Write one line per paragraph and per list item, with no hard wraps. `.prettierrc.json` sets this, and CI fails on a wrapped paragraph. To fix a file, run `npx prettier@3.9.10 --write '**/*.md'`.
