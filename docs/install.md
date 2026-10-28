@@ -1,6 +1,14 @@
 # Installing Context Cues
 
-Requirements: Claude Code, `bash`, `jq` 1.6 or later, and standard `awk`, `grep`, `sed` and `sort`. On Windows, Claude Code also needs Git for Windows, so hooks run in Git Bash; the README's Platforms section has the details.
+Requirements: Claude Code, `bash`, `jq` 1.6 or later, and standard `awk`, `grep`, `sed` and `sort`.
+
+## Platforms
+
+CI runs the full test suite on Linux, macOS and Windows for every push.
+
+- **Linux and WSL:** install `jq` if your distribution lacks it.
+- **macOS:** the tests pass with the system bash 3.2.57 and BSD grep. Install `jq` if your macOS version lacks it (`brew install jq`).
+- **Windows:** the tests pass under the GitHub runner's bash. For real use, Claude Code needs Git for Windows, because it runs hooks in Git Bash when Git Bash is installed and in PowerShell when it is not. Install `jq` separately (`winget install jqlang.jq`). Commands the agent runs through the PowerShell tool reach hooks as `tool_name: "PowerShell"`, so a command check that should see them needs `tools = Bash|PowerShell`. The command-position check assumes bash syntax.
 
 ## The plugin
 

@@ -49,8 +49,8 @@ See more: [installing from your shell, without the plugin, or an example cue by 
 There are three usual places to put guidance for a coding agent, and each one fails in a predictable way:
 
 - **`AGENTS.md` and `CLAUDE.md` fade.** They load at session start. By the time the work they govern comes up, a long session has buried them.
-- **A hook on every edit is noise.** The same reminder after every tool call gets ignored.
-- **Path-scoped `.claude/rules` files key on a path, not on the work.** A rule loads the first time Claude reads, writes or edits a matching file, so a plain read can bring it in long before the work it governs starts. Running a command has no path, so no rule can fire on it, and a write through a Bash redirect or heredoc is not among the triggers Claude Code's docs list.
+- **A hook on every edit is wasteful.** It spends tokens on the same reminder after every tool call.
+- **Path-scoped `.claude/rules` files key only on file paths.** A plain read of a matching file can load one long before the work starts, and running a command never loads one.
 
 For a skill you don't own, `examples/tvly-search` shows how: a cue on `tvly search` adds guidance to Tavily's search skill.
 
@@ -63,8 +63,6 @@ For a skill you don't own, `examples/tvly-search` shows how: a cue on `tvly sear
 | Load a convention when the agent reads or edits a file in a folder or of a type | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Load a procedure when the agent judges the task needs it | ❌ | ❌ | ❌ | ✅ | ❌ |
 | Block a tool call that meets a condition, before it runs | ❌ | ❌ | ❌ | ❌ | ✅ |
-
-Sources: Claude Code's docs on [memory and rules](https://code.claude.com/docs/en/memory.md), [what survives compaction](https://code.claude.com/docs/en/context-window.md), [Bash reads that count as a read](https://code.claude.com/docs/en/tools-reference.md), [skills](https://code.claude.com/docs/en/skills.md) and [hooks](https://code.claude.com/docs/en/hooks.md), as of Claude Code 2.1.310. The cue column is what this repository's tests assert.
 
 ## 🧭 Use cases
 
@@ -92,18 +90,10 @@ The cue fires after the first commit in a repository with no remote, once for ea
 
 - **The cue arrives just after the first act, not before it.** Context from a `PreToolUse` hook also reaches the agent beside the tool result, so it lands no sooner. The first act of a session goes unguided; every later one is covered.
 - **Subagents do not get cues.** A subagent shares its parent's `session_id`, so a cue that fired for the parent counts as fired for the subagent, which never saw the text.
-- **A regex cannot see quoting.** Text after `;` inside quotes, or a heredoc line that starts with the command, can still fire a command cue.
-- **Cue text is capped at 10,000 characters** by Claude Code. Longer output is cut to a preview of the first 2,000 characters, so a long cue points to a doc instead.
+- **A command cue can fire on a mention.** It matches a command wherever a shell could run it, but it cannot tell when that spot is inside quotes. `echo "done; tvly search next"` fires a `tvly search` cue, and so does a heredoc line that starts with `tvly search`.
+- **Cue text is capped at 10,000 characters** by Claude Code. Longer output is cut to a preview of the first 2,000 characters, so a long cue should point to a doc instead.
 
-## 💻 Platforms
-
-CI runs the full test suite on Linux, macOS and Windows for every push.
-
-- **Linux and WSL:** install `jq` if your distribution lacks it.
-- **macOS:** the tests pass with the system bash 3.2.57 and BSD grep. Install `jq` if your macOS version lacks it (`brew install jq`).
-- **Windows:** the tests pass under the GitHub runner's bash. For real use, Claude Code needs Git for Windows, because it runs hooks in Git Bash when Git Bash is installed and in PowerShell when it is not. Install `jq` separately (`winget install jqlang.jq`). Commands the agent runs through the PowerShell tool reach hooks as `tool_name: "PowerShell"`, so a command check that should see them needs `tools = Bash|PowerShell`. The command-position check assumes bash syntax.
-
-## ✍️ Writing a cue
+## 📐 Cue specification
 
 A cue is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. The `context-cue` skill walks the agent through a new cue: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
 
