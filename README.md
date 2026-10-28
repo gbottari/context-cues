@@ -1,8 +1,18 @@
-# Context Cues
+<h1 align="center">Context Cues</h1>
 
-[![test](https://github.com/gbottari/context-cues/actions/workflows/test.yml/badge.svg)](https://github.com/gbottari/context-cues/actions/workflows/test.yml)
+<p align="center">
+  Just-in-time rules for Claude Code: each one fires once per session, the first time the agent does the work it is about.
+</p>
 
-Just-in-time rules for Claude Code: each one fires once per session, the first time the agent does the work it is about.
+<p align="center">
+  <a href="https://github.com/gbottari/context-cues/actions/workflows/test.yml"><img src="https://github.com/gbottari/context-cues/actions/workflows/test.yml/badge.svg" alt="test"/></a>
+  <a href="https://github.com/gbottari/context-cues/releases/latest"><img src="https://img.shields.io/github/v/release/gbottari/context-cues" alt="Latest release"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/gbottari/context-cues" alt="License: MIT"/></a>
+</p>
+
+<p align="center">
+  <a href="#-install">Install</a> · <a href="#-why">Why</a> · <a href="#-use-cases">Use cases</a> · <a href="#-limits">Limits</a> · <a href="#-examples">Examples</a>
+</p>
 
 **Status:** 0.x, MIT-licensed, used daily by the author and tested on Linux, macOS and Windows. The `cue.ini` format may still change before 1.0.
 
@@ -11,7 +21,7 @@ A **context cue** is a folder with two small files: `cue.ini` says when it fires
 - **Keep a rule from fading in a long session.** `CLAUDE.md` loads at session start, and hours of work bury it. A cue arrives right after the first command or edit it governs, while that work is in front of the agent.
 - **Add your own guidance to a skill you don't own.** Write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly.
 
-A cue can't guide the first act itself, and subagents don't get cues; [Limits](#limits) has why.
+A cue can't guide the first act itself, and subagents don't get cues; [Limits](#-limits) has why.
 
 A cue fires again after `/compact` or `/clear`, when its text has been lost.
 
@@ -25,7 +35,7 @@ PostToolUse:Bash hook additional context: Reading `tvly search` results:
 
 Later searches in the same session add nothing.
 
-## Install
+## 🚀 Install
 
 Requirements: Claude Code 2.1.275 or later, `bash`, and `jq` 1.6 or later.
 
@@ -39,7 +49,7 @@ The plugin brings the hooks and the `context-cue` skill. To make your first cue,
 
 [`docs/install.md`](docs/install.md) covers installing from your shell, adding an example cue by hand, and installing without the plugin.
 
-## Why
+## 💡 Why
 
 There are three usual places to put guidance for a coding agent, and each one fails in a predictable way:
 
@@ -49,7 +59,19 @@ There are three usual places to put guidance for a coding agent, and each one fa
 
 For a skill you don't own, `examples/tvly-search` shows how: a cue on `tvly search` adds guidance to Tavily's search skill.
 
-## Compared with the built-in options
+## 🧭 Use cases
+
+Ask Claude Code for a cue in plain words; the `context-cue` skill builds and tests it.
+
+| Ask | It fires | The agent reads |
+| --- | --- | --- |
+| _"When you search with `tvly`, remind yourself how to read the scores."_ | after the first `tvly search` of a session | read the top `score` first; under about 0.1, the search failed |
+| _"Tell me our comment style the first time you add a TypeScript comment."_ | after the first comment added to a `.ts` or `.tsx` file, Bash writes included | comments say why, in one line where one will do |
+| _"In repos with no remote, don't offer to push."_ | after the first commit in such a repo, once per repo | the repo has no remote by design; don't offer to push |
+
+All three are in [`examples/`](examples), with their tests.
+
+## ⚖️ Compared with the built-in options
 
 | Job | Context cues | `AGENTS.md` or `CLAUDE.md` | Path rules | Skills | Hooks |
 | --- | :-: | :-: | :-: | :-: | :-: |
@@ -63,14 +85,14 @@ For a skill you don't own, `examples/tvly-search` shows how: a cue on `tvly sear
 
 Sources: Claude Code's docs on [memory and rules](https://code.claude.com/docs/en/memory.md), [what survives compaction](https://code.claude.com/docs/en/context-window.md), [Bash reads that count as a read](https://code.claude.com/docs/en/tools-reference.md), [skills](https://code.claude.com/docs/en/skills.md) and [hooks](https://code.claude.com/docs/en/hooks.md), as of Claude Code 2.1.310. The cue column is what this repository's tests assert.
 
-## Limits
+## ⚠️ Limits
 
 - **The cue arrives just after the first act, not before it.** Context from a `PreToolUse` hook also reaches the agent beside the tool result, so it lands no sooner. The first act of a session goes unguided; every later one is covered.
 - **Subagents do not get cues.** A subagent shares its parent's `session_id`, so a cue that fired for the parent counts as fired for the subagent, which never saw the text.
 - **A regex cannot see quoting.** Text after `;` inside quotes, or a heredoc line that starts with the command, can still fire a command cue.
 - **Cue text is capped at 10,000 characters** by Claude Code. Longer output is cut to a preview of the first 2,000 characters, so a long cue points to a doc instead.
 
-## Platforms
+## 💻 Platforms
 
 CI runs the full test suite on Linux, macOS and Windows for every push.
 
@@ -79,7 +101,7 @@ CI runs the full test suite on Linux, macOS and Windows for every push.
 - **Windows:** the tests pass under the GitHub runner's bash. For real use, Claude Code needs Git for Windows, because it runs hooks in Git Bash when Git Bash is installed and in PowerShell when it is not. Install `jq` separately (`winget install jqlang.jq`). Commands the agent runs through the PowerShell tool reach hooks as `tool_name: "PowerShell"`, so a command check that should see them needs `tools = Bash|PowerShell`. The command-position check assumes bash syntax.
 - **WSL:** same as Linux.
 
-## Writing a cue
+## ✍️ Writing a cue
 
 The `context-cue` skill walks the agent through a new cue: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
 
@@ -105,7 +127,7 @@ A `[suppress]` section takes the same checks. When it matches, the cue is spent 
 
 The hard part is the trigger. A cue gets one shot per session, and every wrong trigger spends that shot on the wrong call without any error. [`skills/context-cue/references/trigger-design.md`](skills/context-cue/references/trigger-design.md) covers the five ways this happens.
 
-## Examples
+## 📂 Examples
 
 One example per kind of check, each a cue the author runs.
 
@@ -117,11 +139,11 @@ One example per kind of check, each a cue the author runs.
 | [`no-remote`](examples/no-remote) | the first commit in a git repository with no remote, once per repository | `run`, a key per repository, and `${REPO}` in the prompt |
 | [`agent-docs`](examples/agent-docs) | the first write to a skill, `AGENTS.md` or `CLAUDE.md`, unless the writing skill it points to is already loaded | `[suppress]`, and `exclude` |
 
-## Cost
+## ⏱️ Cost
 
 No tokens until a cue fires. One hook process starts after each call of a tool some cue checks (Bash, PowerShell, the file-editing tools, Agent and Skill); Read, Grep and Glob start nothing. Measured inside Claude Code on Linux, it adds about 5 ms to such a call with no cues installed, and about 17 ms to a Bash call with the five examples. [`docs/performance.md`](docs/performance.md) has the measurements.
 
-## How it works
+## ⚙️ How it works
 
 One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool some cue checks (Bash, PowerShell, the file-editing tools, Agent and Skill) with the call's JSON payload on stdin: `session_id`, `tool_name`, `tool_input` and `tool_response`. For each cue folder under `~/.claude/context-cues/` it goes through four steps:
 
@@ -134,14 +156,14 @@ One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool some cue c
 
 A cue that is broken, such as one with a pattern that does not compile, stays silent and is named in `$XDG_RUNTIME_DIR/context-cues/errors.log`. The other cues keep working.
 
-## How this was built
+## 🛠️ How this was built
 
 The code and docs were written with [Claude Code](https://claude.com/claude-code), then reviewed and tested by the author. The cues come from daily use on the author's own machine.
 
-## Contributing
+## 🤝 Contributing
 
 Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the checks to run and the house rules.
 
-## License
+## 📄 License
 
 [MIT](LICENSE)
