@@ -72,6 +72,7 @@ cat >"$R/runner/check.sh" <<'EOF'
 q=$(jq -r .tool_input.q)
 [ "$q" = skip ] && exit 1
 [ "$CUE_NAME" = runner ] && [ -n "$CUE_SESSION_ID" ] && [ -f "$CUE_DIR/check.sh" ] || exit 3
+case $CUE_SESSION_ID in */*) exit 3 ;; esac
 printf '{"key": "%s", "vars": {"WHO": "%s"}}' "$q" "$q"
 EOF
 expect "vars fill the prompt" 'Hello ann, ${UNSET} stays.' "$(dispatch "$R" "$(probe r1 ann)")"
@@ -204,8 +205,25 @@ expect "a session id with a slash" - "$(dispatch "$T" "$(probe ../x go)")"
 expect "no cues folder" - "$(dispatch "$work/nowhere" "$(probe e1 go)")"
 expect "a payload that is not JSON" - "$(dispatch "$T" 'not json')"
 
+# --- subagents: a subagent's call carries its parent's session_id and its own agent_id,
+# and each subagent gets the cues once in its own context ---
+# sub <session> <agent id> <q>: a call made inside a subagent, keys in Claude Code's order
+sub() { jq -cn --arg s "$1" --arg a "$2" --arg q "$3" '{session_id: $s, agent_id: $a, agent_type: "general-purpose", tool_name: "Probe", tool_input: {q: $q}, cwd: "/"}'; }
+expect "the parent fires" "one says hi" "$(dispatch "$T" "$(probe sa go)")"
+expect "its subagent fires too" "one says hi" "$(dispatch "$T" "$(sub sa a1 go)")"
+expect "once per subagent" - "$(dispatch "$T" "$(sub sa a1 go)")"
+expect "a second subagent fires" "one says hi" "$(dispatch "$T" "$(sub sa a2 go)")"
+expect "the parent stays spent" - "$(dispatch "$T" "$(probe sa go)")"
+expect "an agent id with a slash" - "$(dispatch "$T" "$(sub sb ../x go)")"
+expect "agent_id inside the tool input is the parent's call" "one says hi" \
+	"$(dispatch "$T" "$(jq -cn '{session_id: "sc", tool_name: "Probe", tool_input: {q: "go", agent_id: "x1"}}')")"
+expect "so the parent is spent" - "$(dispatch "$T" "$(probe sc go)")"
+expect "a run step in a subagent sees the bare session id" "Hello cat" "$(dispatch "$R" "$(jq -cn '{session_id: "sd", agent_id: "a1", tool_name: "Probe", tool_input: {q: "cat"}}')")"
+
 # --- re-arming: compact and clear re-arm, resume does not ---
 rearm() { printf '{"session_id":"%s","source":"%s"}' "$1" "$2" | XDG_RUNTIME_DIR=$work/marks bash "$repo/hooks/rearm.sh"; }
+rearm sa compact
+expect "compact re-arms a subagent too" "one says hi" "$(dispatch "$T" "$(sub sa a1 go)")"
 expect "fires before re-arm" "one says hi" "$(dispatch "$T" "$(probe ra go)")"
 rearm ra resume
 expect "resume does not re-arm" - "$(dispatch "$T" "$(probe ra go)")"

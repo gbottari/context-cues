@@ -81,7 +81,6 @@ Ask: _"In repos with no remote, don't offer to push."_ After the first commit in
 ## ⚠️ Limits
 
 - **The cue arrives just after the first act, not before it.** Claude Code delivers hook context beside the tool result, even from a `PreToolUse` hook.
-- **Subagents do not get cues.** A subagent shares its parent's `session_id`, so a cue that fired for the parent counts as fired for the subagent, which never saw the text.
 - **Claude Code caps hook output at 10,000 characters**, about 25 times the longest example cue. Past that it shows a 2,000-character preview, so guidance that long belongs in a doc the cue points to.
 
 ## 📐 Cue specification
@@ -137,7 +136,7 @@ No tokens until a cue fires. One hook process starts after each call of a tool s
 
 One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool some cue checks (Bash, PowerShell, the file-editing tools, Agent and Skill) with the call's JSON payload on stdin: `session_id`, `tool_name`, `tool_input` and `tool_response`. Your cues live in `~/.claude/context-cues/`, one folder each, and a new folder is live on the next tool call. For each cue folder it goes through four steps:
 
-1. **Already fired?** It skips a cue whose marker file exists at `$XDG_RUNTIME_DIR/context-cues/<session_id>/<cue-name>`.
+1. **Already fired?** It skips a cue whose marker file exists at `$XDG_RUNTIME_DIR/context-cues/<session_id>/<cue-name>`. A subagent's calls keep their markers in a folder of their own inside that one, so each subagent gets every cue once in its own context.
 2. **Right tool?** It reads every `cue.ini` and exits when no cue can act on this tool, so a `Read` or `Grep` call costs no `jq` run.
 3. **Checks.** One `jq` run pulls out what the call itself names and adds: `file_path`, `new_string`, `content`, `command`. Each `[check]` section in `cue.ini` must pass, in order. A command check matches the command only where a shell would run it, so a commit message that mentions the command stays silent.
 4. **Fire.** It writes the marker and prints `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "<prompt.md>"}}`. Claude Code shows the text to the agent as a system reminder beside the tool result. When several cues fire on one call, their texts arrive in one reminder, in the order of their folder names.

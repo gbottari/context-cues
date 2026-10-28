@@ -27,8 +27,19 @@ json_field() {
 	[[ $payload =~ $re ]] && field=${BASH_REMATCH[1]}
 }
 json_field session_id
-sid=$field
-case $sid in "" | */* | .*) exit 0 ;; esac
+session=$field
+case $session in "" | */* | .*) exit 0 ;; esac
+# sid is the marker folder. A subagent's call carries its parent's session_id and its own
+# agent_id, and the subagent gets every cue once in its own context, so its markers go in
+# a folder of their own inside the session's, which rearm.sh clears with the rest. The dot
+# keeps that folder's name apart from every cue's. agent_id is read only before tool_input,
+# because a tool's input or output can hold a key of the same name.
+sid=$session
+agent_re='"agent_id"[[:space:]]*:[[:space:]]*"([^"]*)"'
+if [[ ${payload%%\"tool_input\"*} =~ $agent_re ]]; then
+	case ${BASH_REMATCH[1]} in "" | */* | .*) exit 0 ;; esac
+	sid=$session/.agent-${BASH_REMATCH[1]}
+fi
 
 # Cues not yet spent in this session. A cue's base marker spends it for every key.
 cues=()
@@ -337,8 +348,8 @@ run_step() {
 	[ -f "$script" ] || { ERR="run: ${S_RUN[$1]} not found"; return 2; }
 	errf=$(mktemp "${TMPDIR:-/tmp}/context-cues.XXXXXX")
 	case $script in
-	*.sh) out=$(printf '%s' "$payload" | CUE_NAME=$cue CUE_SESSION_ID=$sid CUE_DIR=$CUES_DIR/$cue bash "$script" 2>"$errf") ;;
-	*) out=$(printf '%s' "$payload" | CUE_NAME=$cue CUE_SESSION_ID=$sid CUE_DIR=$CUES_DIR/$cue "$script" 2>"$errf") ;;
+	*.sh) out=$(printf '%s' "$payload" | CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue bash "$script" 2>"$errf") ;;
+	*) out=$(printf '%s' "$payload" | CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue "$script" 2>"$errf") ;;
 	esac
 	rc=$?
 	if [ $rc -gt 1 ]; then
