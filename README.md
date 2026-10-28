@@ -14,18 +14,14 @@
   <a href="#-install">Install</a> · <a href="#-why">Why</a> · <a href="#-use-cases">Use cases</a> · <a href="#-limits">Limits</a> · <a href="#-examples">Examples</a>
 </p>
 
-**Status:** 0.x, MIT-licensed, used daily by the author and tested on Linux, macOS and Windows. The `cue.ini` format may still change before 1.0.
+**Status:** 0.x, MIT-licensed, supported on Linux, macOS and Windows.
 
-A **context cue** is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. Use one to:
+Context cues are a token-efficient, deterministic way to steer the agent automatically. A cue costs no tokens until it fires, and it fires on a pattern in the agent's own tool call, not on the model's judgement. Use one to:
 
 - **Keep a rule from fading in a long session.** `CLAUDE.md` loads at session start, and hours of work bury it. A cue arrives right after the first command or edit it governs, while that work is in front of the agent.
 - **Add your own guidance to a skill you don't own.** Write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly.
 
-A cue can't guide the first act itself, and subagents don't get cues; [Limits](#-limits) has why.
-
-A cue fires again after `/compact` or `/clear`, when its text has been lost.
-
-The first `tvly search` of a session brings this into the agent's context, beside the search results, as a system reminder ([`examples/tvly-search`](examples/tvly-search)):
+For example, a cue for Tavily's search CLI fires after the first `tvly search` of a session. The agent gets this beside the search results, as a system reminder ([`examples/tvly-search`](examples/tvly-search)):
 
 ```text
 PostToolUse:Bash hook additional context: Reading `tvly search` results:
@@ -103,7 +99,7 @@ CI runs the full test suite on Linux, macOS and Windows for every push.
 
 ## ✍️ Writing a cue
 
-The `context-cue` skill walks the agent through a new cue: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
+A cue is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. The `context-cue` skill walks the agent through a new cue: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
 
 A cue that fires the first time a session adds a comment to a TypeScript file:
 
@@ -152,18 +148,8 @@ One `PostToolUse` hook, `dispatch.sh`, runs after each call of a tool some cue c
 3. **Checks.** One `jq` run pulls out what the call itself names and adds: `file_path`, `new_string`, `content`, `command`. Each `[check]` section in `cue.ini` must pass, in order. A command check matches the command only where a shell would run it, so a commit message that mentions the command stays silent.
 4. **Fire.** It writes the marker and prints `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "<prompt.md>"}}`. Claude Code shows the text to the agent as a system reminder beside the tool result. When several cues fire on one call, their texts arrive in one reminder, in the order of their folder names.
 
-`rearm.sh`, a `SessionStart` hook, deletes the session's markers when the session is compacted or cleared, so every cue can fire once more.
+A cue fires again after `/compact` or `/clear`, when its text has been lost: `rearm.sh`, a `SessionStart` hook, deletes the session's markers.
 
 A cue that is broken, such as one with a pattern that does not compile, stays silent and is named in `$XDG_RUNTIME_DIR/context-cues/errors.log`. The other cues keep working.
 
-## 🛠️ How this was built
-
-The code and docs were written with [Claude Code](https://claude.com/claude-code), then reviewed and tested by the author. The cues come from daily use on the author's own machine.
-
-## 🤝 Contributing
-
-Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the checks to run and the house rules.
-
-## 📄 License
-
-[MIT](LICENSE)
+_Written with [Claude Code](https://claude.com/claude-code) and reviewed by the author._
