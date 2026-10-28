@@ -128,7 +128,7 @@ One example per kind of check, each a cue the author runs.
 | Example | Fires on | Shows |
 | --- | --- | --- |
 | [`tvly-search`](examples/tvly-search) | the first `tvly search` a session runs | `command`, and extending a third-party skill |
-| [`comment-heavy`](examples/comment-heavy) | the first commit of a session whose added lines are mostly comments, counted by cloc | `run` calling a tool of its own, named in the cue's README, and `${SHARE}` in the prompt |
+| [`comment-slop`](examples/comment-slop) | the first commit of a session whose added lines are mostly comments, counted by cloc | `run` calling a tool of its own, named in the cue's README, and `${SHARE}` in the prompt |
 | [`worktree-base`](examples/worktree-base) | the first subagent a session starts in its own git worktree | `tool-input`: one field of the call's input |
 | [`no-remote`](examples/no-remote) | the first commit in a git repository with no remote, once per repository | `run`, a key per repository, and `${REPO}` in the prompt |
 | [`agent-docs`](examples/agent-docs) | the first write to a skill, `AGENTS.md` or `CLAUDE.md`, unless the writing skill it points to is already loaded | `[suppress]`, and `exclude` |

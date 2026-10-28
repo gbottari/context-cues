@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run step for the comment-heavy cue. Passes when the commit just made adds at least
+# Run step for the comment-slop cue. Passes when the commit just made adds at least
 # MIN_COMMENT comment lines and they are at least MIN_SHARE percent of the comment and code
 # lines it adds, counted by cloc. Returns the share as SHARE for prompt.md.
 set -u

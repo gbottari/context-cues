@@ -16,7 +16,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-      - name: Install cloc, which the comment-heavy example needs
+      - name: Install cloc, which the comment-slop example needs
         run: |
           case "$RUNNER_OS" in
             Linux) sudo apt-get install -y cloc ;;
