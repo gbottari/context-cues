@@ -37,7 +37,7 @@ match = tvly[[:space:]]+search([[:space:]]|$)
 wrappers = npx|pnpm[[:space:]]+exec
 ```
 
-Two mentions still fire, because a regex cannot see quoting: text after `;` inside quotes, and a heredoc body line that starts with the command. The hook handler's `if` field does parse quoting, and stays out all the same: it drops a run behind `time`, `env` or `pnpm exec`, and it cannot see a redirect target.
+Three mentions still fire, because a regex cannot see quoting: text after `;` inside quotes, a heredoc body line that starts with the command, and a heredoc line that names it in Markdown backticks, which read as command substitution. Docs written through Bash hit the last one often. The hook handler's `if` field does parse quoting, and stays out all the same: it drops a run behind `time`, `env` or `pnpm exec`, and it cannot see a redirect target.
 
 ## Path patterns
 

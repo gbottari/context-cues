@@ -92,7 +92,7 @@ The cue fires after the first commit in a repository with no remote, once for ea
 
 - **The cue arrives just after the first act, not before it.** Context from a `PreToolUse` hook also reaches the agent beside the tool result, so it lands no sooner. The first act of a session goes unguided; every later one is covered.
 - **Subagents do not get cues.** A subagent shares its parent's `session_id`, so a cue that fired for the parent counts as fired for the subagent, which never saw the text.
-- **A command cue can fire on a mention.** It matches a command wherever a shell could run it, but it cannot tell when that spot is inside quotes. `echo "done; tvly search next"` fires a `tvly search` cue, and so does a heredoc line that starts with `tvly search`.
+- **A command cue can fire on a mention.** It matches a command wherever a shell could run it, but it cannot tell when that spot is inside quotes. `echo "done; tvly search next"` fires a `tvly search` cue, and so does a heredoc line that starts with `tvly search`, or one that names it in Markdown backticks, since a backtick reads as command substitution.
 - **Cue text is capped at 10,000 characters** by Claude Code. Longer output is cut to a preview of the first 2,000 characters, so a long cue should point to a doc instead.
 
 ## 📐 Cue specification
