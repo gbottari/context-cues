@@ -1,0 +1,18 @@
+[
+  {"want": "fired", "label": "Edit SKILL.md adds Giulio", "tool": "Edit", "input": {"file_path": "/home/u/code/team-skills/gb-x/SKILL.md", "old_string": "Ask first.", "new_string": "Ask Giulio first."}},
+  {"want": "fired", "label": "Write a reference in a skills repo", "tool": "Write", "input": {"file_path": "/home/u/code/team-skills/gb-x/references/card.md", "content": "# Card\nShow Giulio the draft.\n"}},
+  {"want": "fired", "label": "Write ~/.claude/skills SKILL.md", "tool": "Write", "input": {"file_path": "/home/u/.claude/skills/foo/SKILL.md", "content": "Giulio decides.\n"}},
+  {"want": "fired", "label": "MultiEdit, one skill edit", "tool": "MultiEdit", "input": {"edits": [{"file_path": "/p/notes.md", "new_string": "x"}, {"file_path": "/home/u/code/team-skills/gb-x/SKILL.md", "new_string": "Tell Giulio."}]}},
+  {"want": "fired", "label": "bash heredoc into a skill", "command": "cat > /home/u/code/team-skills/gb-x/SKILL.md <<EOF\nGiulio approves.\nEOF"},
+  {"want": "fired", "label": "agent definition in the skills repo", "tool": "Write", "input": {"file_path": "/home/u/code/team-skills/agents/gb-inbox.md", "content": "Giulio drops items.\n"}},
+  {"want": "silent", "label": "skill edit says the user", "tool": "Edit", "input": {"file_path": "/home/u/code/team-skills/gb-x/SKILL.md", "old_string": "Ask.", "new_string": "Ask the user."}},
+  {"want": "silent", "label": "edit beside an existing Giulio line", "tool": "Edit", "input": {"file_path": "/home/u/code/team-skills/gb-x/SKILL.md", "old_string": "Giulio is the captain.\nOld.", "new_string": "Giulio is the captain.\nNew."}},
+  {"want": "silent", "label": "remove a Giulio line", "tool": "Edit", "input": {"file_path": "/home/u/code/team-skills/gb-x/SKILL.md", "old_string": "Ask Giulio.", "new_string": "Ask the user."}},
+  {"want": "silent", "label": "Giulio in a doc under ~/docs", "tool": "Write", "input": {"file_path": "/home/u/docs/x.md", "content": "Giulio decided.\n"}},
+  {"want": "silent", "label": "Giulio in AGENTS.md", "tool": "Edit", "input": {"file_path": "/home/u/code/AGENTS.md", "old_string": "a", "new_string": "Giulio says a"}},
+  {"want": "silent", "label": "grep Giulio in skills (a read)", "command": "rg -n Giulio /home/u/code/team-skills/*/SKILL.md", "response": "/home/u/code/team-skills/gb-x/SKILL.md:3: Giulio\n"},
+  {"want": "silent", "label": "skill-creator workspace output", "tool": "Write", "input": {"file_path": "/home/u/code/team-skills/gb-x-workspace/iteration-1/eval-0/outputs/SKILL.md", "content": "Giulio\n"}},
+  {"want": "silent", "label": "SKILL.md.bak is not a skill", "tool": "Write", "input": {"file_path": "/home/u/code/team-skills/gb-x/SKILL.md.bak", "content": "Giulio\n"}},
+  {"want": "fired", "label": "first slip in a session", "session": "twice", "tool": "Write", "input": {"file_path": "/home/u/code/team-skills/gb-x/SKILL.md", "content": "Giulio\n"}},
+  {"want": "silent", "label": "second slip, same session", "session": "twice", "tool": "Write", "input": {"file_path": "/home/u/code/team-skills/gb-x/SKILL.md", "content": "Giulio\n"}}
+]

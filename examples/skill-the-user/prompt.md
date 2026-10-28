@@ -1,0 +1,1 @@
+You just wrote "Giulio" into a skill. In a skill, the person it serves is "the user", in every sentence: skills graduate to the team marketplace, where the reader is a teammate, so a name in the text points at the wrong person. Rewrite the line you just added to say "the user", and write it that way for the rest of the session.

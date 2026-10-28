@@ -130,6 +130,7 @@ One example per kind of check, each a cue the author runs.
 | [`worktree-base`](examples/worktree-base) | the first subagent a session starts in its own git worktree | `tool-input`: one field of the call's input |
 | [`no-remote`](examples/no-remote) | the first commit in a git repository with no remote, once per repository | `run`, a key per repository, and `${REPO}` in the prompt |
 | [`agent-docs`](examples/agent-docs) | the first write to a skill, `AGENTS.md` or `CLAUDE.md`, unless the writing skill it points to is already loaded | `[suppress]`, and `exclude` |
+| [`skill-the-user`](examples/skill-the-user) | the first time a session writes the author's name into a skill file | `file-write` with `match`: only added text, and only text that is new |
 
 ## ⏱️ Cost
 
