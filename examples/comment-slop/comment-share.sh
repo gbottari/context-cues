@@ -32,9 +32,24 @@ git rev-parse -q --verify HEAD >/dev/null || exit 1
 # A first commit has no parent, so it is compared with the empty tree.
 base=$(git rev-parse -q --verify 'HEAD~1' 2>/dev/null) || base=$(git hash-object -t tree /dev/null)
 
-# A rewritten line counts as modified rather than added, and is written all the same.
-read -r comment code < <(cloc --git --diff "$base" HEAD --json --quiet 2>/dev/null |
-	jq -r '[.SUM.added, .SUM.modified] | "\(map(.comment // 0) | add) \(map(.code // 0) | add)"' 2>/dev/null)
+# The changed files go into two folders, before and after, for `cloc --diff`. cloc's own
+# `--git` mode must not be used: on Windows it reads back an empty archive and reports nothing.
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/comment-slop.XXXXXX") || exit 1
+trap 'rm -rf -- "$tmp"' EXIT
+mkdir "$tmp/old" "$tmp/new"
+while IFS= read -r -d '' f; do
+	for side in old new; do
+		[ $side = old ] && rev=$base || rev=HEAD
+		git cat-file -e "$rev:$f" 2>/dev/null || continue
+		mkdir -p "$tmp/$side/$(dirname "$f")"
+		git show "$rev:$f" >"$tmp/$side/$f"
+	done
+done < <(git diff --name-only -z --no-renames "$base" HEAD)
+
+# A rewritten line counts as modified rather than added, and is written all the same. jq on
+# Windows ends its output with \r\n, which would break the arithmetic below.
+read -r comment code < <(cloc --diff "$tmp/old" "$tmp/new" --json --quiet 2>/dev/null |
+	jq -r '[.SUM.added, .SUM.modified] | "\(map(.comment // 0) | add) \(map(.code // 0) | add)"' 2>/dev/null | tr -d '\r')
 [ -n "${comment:-}" ] && [ "$comment" -ge "$MIN_COMMENT" ] || exit 1
 share=$((comment * 100 / (comment + code)))
 [ "$share" -ge "$MIN_SHARE" ] || exit 1

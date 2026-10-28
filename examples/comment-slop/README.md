@@ -8,4 +8,4 @@ Needs `cloc` on `PATH`. Without it the cue stays silent. Install it with your pa
 
 ## Cost
 
-Every `git commit` costs about 200 ms until the cue fires, about 180 ms of it cloc itself; once it has fired, nothing for the rest of the session. Any other Bash call costs about 7 ms more than with no cues installed. Measured on 2026-10-28 on Linux by timing `hooks/dispatch.sh` directly in a shell loop, 30 runs per case in shuffled order, medians, on a 2-line and a 7-file commit that stayed under the threshold.
+Until the cue fires, a `git commit` costs about 150 ms when it changes 2 lines, and more as it touches more files: about 250 ms for one that renamed 7 files. Once it has fired, it costs nothing for the rest of the session. Any other Bash call costs about 5 ms more than with no cues installed. Measured on 2026-10-28 on Linux by timing `hooks/dispatch.sh` directly in a shell loop, 30 runs per case in shuffled order, medians, on commits that stayed under the threshold.
