@@ -22,9 +22,7 @@ Context cues are a token-efficient, deterministic way to steer agents during ses
 
 For example, the `comment-slop` cue fires after the first commit of a session whose added lines are mostly comments. The agent gets this beside the commit's output, as a system reminder ([`examples/comment-slop`](examples/comment-slop)):
 
-```text
-PostToolUse:Bash hook additional context: This reminder fired because comments are 32% of the lines your last commit added, which can be a sign of documentation slop. The rules for comments: a comment says why the code is the way it is now (a constraint, a decision, a trap) and leaves what it does to the code and what changed to the commit. …
-```
+> PostToolUse:Bash hook additional context: This reminder fired because comments are 32% of the lines your last commit added, which can be a sign of documentation slop. The rules for comments: a comment says why the code is the way it is now (a constraint, a decision, a trap) and leaves what it does to the code and what changed to the commit. …
 
 Later commits in the same session add nothing.
 
@@ -66,71 +64,81 @@ Anthropic's own plugins come closest. `security-guidance` adds a reminder once p
 
 ## 🧭 Use cases
 
-Ask Claude Code for a cue in plain words; the `context-cue` skill builds and tests it. All three below are in [`examples/`](examples), with their tests.
+Each one starts from a problem. You ask Claude Code for a cue in plain words, and the `context-cue` skill builds and tests it. All three are in [`examples/`](examples), with their tests.
 
-### Read a tool's output the right way
+### The agent misreads a skill you didn't write
 
-> _"When you search with `tvly`, remind yourself how to read the scores."_
+You installed a third-party skill for a search CLI. The agent takes a page of off-topic results as an answer, and fixing the skill means editing files its next update overwrites.
 
-The cue fires after the first `tvly search` of a session, beside the results. The agent reads the top `score` before anything else, and treats a top score under about 0.1 as a failed search.
+Ask: _"When you search with `tvly`, remind yourself how to read the scores."_ After the first `tvly search` of a session, beside the results, the agent reads:
 
-### Keep comments short
+> **Read the top `score` before the results.** Relevant hits usually score 0.65–0.90. A top score under about 0.1 means the search failed …
 
-> _"When a commit is mostly comments, remind me how we write them."_
+### A rule in `CLAUDE.md` has faded by the time it matters
 
-The cue fires after the first commit of a session whose added lines are mostly comments, in any language cloc counts. It says why it fired and gives the rules: comments explain why, in one line where one will do, even where the repository's own conventions differ.
+Your `CLAUDE.md` says a comment explains why, in one line. Three hours into a session, the agent commits a change that is half comments.
 
-### Stop a habit in one kind of repository
+Ask: _"When a commit is mostly comments, remind me how we write them."_ After the first such commit, the agent reads that comments are 32% of the lines it just added, and the rules again: a comment says why the code is the way it is, in one line where one will do.
 
-> _"In repos with no remote, don't offer to push."_
+### A habit that is wrong in one kind of repository
 
-The cue fires after the first commit in a repository with no remote, once for each such repository, so the agent's report ends at the commit.
+Some of your repositories have no remote. After every commit there, the agent offers to push.
+
+Ask: _"In repos with no remote, don't offer to push."_ After the first commit in each such repository, the agent reads:
+
+> `notes` has no git remote. Don't offer or ask to push here, and don't mention the missing remote.
 
 ## ⚠️ Limits
 
-- **The cue arrives just after the first act, not before it.** Context from a `PreToolUse` hook also reaches the agent beside the tool result, so it lands no sooner. The first act of a session goes unguided; every later one is covered.
+- **The cue arrives just after the first act, not before it.** Claude Code delivers hook context beside the tool result, even from a `PreToolUse` hook.
 - **Subagents do not get cues.** A subagent shares its parent's `session_id`, so a cue that fired for the parent counts as fired for the subagent, which never saw the text.
-- **A command cue can fire on a mention.** It matches a command wherever a shell could run it, but it cannot tell when that spot is inside quotes. `echo "done; tvly search next"` fires a `tvly search` cue, and so does a heredoc line that starts with `tvly search`, or one that names it in Markdown backticks, since a backtick reads as command substitution.
-- **Cue text is capped at 10,000 characters** by Claude Code. Longer output is cut to a preview of the first 2,000 characters, so a long cue should point to a doc instead.
+- **The built-in `command` check can fire on a mention inside quotes.** It matches a command wherever a shell could run it, but it cannot see quoting. `echo "done; tvly search next"` fires a `tvly search` cue, and so does a heredoc line that starts with `tvly search`, or one that names it in Markdown backticks, since a backtick reads as command substitution. A `run` check that parses the command can rule these out.
+- **Claude Code caps hook output at 10,000 characters**, about 25 times the longest example cue. Past that it shows a 2,000-character preview, so guidance that long belongs in a doc the cue points to.
 
 ## 📐 Cue specification
 
-A cue is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. The `context-cue` skill walks the agent through a new cue: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, say what the cue is for in a short `README.md`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
+A cue is a folder with two files: `cue.ini` says when it fires, and `prompt.md` holds the text injected into the agent's context.
+
+The `context-cue` skill teaches the agent to:
+
+- **Write the cue.** It picks the checks for `cue.ini`, writes `prompt.md` as one short standing rule, and says when the rule belongs in `CLAUDE.md` instead.
+- **Test it.** `tests.json` lists the calls the cue must fire on and the ones it must stay silent on, and the skill's `cue-test.sh` runs them. A command cue gets a ready-made matrix: every way a shell runs the command, and the mentions that must stay silent.
 
 A cue that fires the first time a session adds a comment to a TypeScript file:
 
 ```ini
 [check]
 uses = file-write
+# a path ending in .ts or .tsx
 path = \.tsx?([^[:alnum:]._-]|$)
+# an added line with /* or //, but not the // in https://
 match = (^|[^:])//|/\*
 ```
 
-`cue.ini` holds one `[check]` section per condition, and all of them must pass. Each uses a built-in check, or `run`, a script of your own in the cue folder:
+`cue.ini` holds one `[check]` section per condition, and all of them must pass. A check uses one of three built-ins, named by `uses =`:
 
-| Check | Passes when |
+| `uses =` | Passes when |
 | --- | --- |
-| `uses = command` | a Bash call runs the command `match` names, where a shell would run it |
-| `uses = file-write` | the call writes a file matching `path`, by any tool or a Bash redirect, and adds a line matching `match` |
-| `uses = tool-input` | the call is one of `tools`, and the input `field` matches `match` |
-| `run = <script>` | the script, given the call on stdin, exits 0. It can return a key, so the cue fires once per key, and values for `${NAME}` in `prompt.md` |
+| `command` | a Bash call runs the command `match` names, where a shell would run it |
+| `file-write` | the call writes a file matching `path`, by any tool or a Bash redirect, and adds a line matching `match` |
+| `tool-input` | the call is one of `tools`, and the input `field` matches `match` |
 
-A `[suppress]` section takes the same checks. When it matches, the cue is spent for the session and says nothing. Values run raw to the end of the line, so patterns need no escaping, and comments are whole lines starting with `#` or `;`. [`SKILL.md`](skills/context-cue/SKILL.md) has every key.
+For a condition no built-in covers, such as whether the repository has a remote, a check names a script in the cue folder instead: `run = <script>`. The script gets the call on stdin and passes by exiting 0. It can also return a key, so the cue fires once per key rather than once per session, and values for `${NAME}` in `prompt.md`.
 
-The hard part is the trigger. A cue gets one shot per session, and every wrong trigger spends that shot on the wrong call without any error. [`skills/context-cue/references/trigger-design.md`](skills/context-cue/references/trigger-design.md) covers the five ways this happens.
+A `[suppress]` section takes the same checks and works the other way round: when it matches a call, the cue counts as already fired, so it stays silent for the rest of the session. Use it when the agent already has what the cue would say: `agent-docs` goes quiet once the agent loads the writing skill the cue points to.
+
+Values run raw to the end of the line, so patterns need no escaping. Comments are whole lines starting with `#` or `;`; a `#` after a value is part of the value. [`SKILL.md`](skills/context-cue/SKILL.md) has every key.
 
 ## 📂 Examples
 
-One example per kind of check, each a cue the author runs.
-
-| Example | Fires on | Shows |
-| --- | --- | --- |
-| [`tvly-search`](examples/tvly-search) | the first `tvly search` a session runs | `command`, and extending a third-party skill |
-| [`comment-slop`](examples/comment-slop) | the first commit of a session whose added lines are mostly comments, counted by cloc | `run` calling a tool of its own, named in the cue's README, and `${SHARE}` in the prompt |
-| [`worktree-base`](examples/worktree-base) | the first subagent a session starts in its own git worktree | `tool-input`: one field of the call's input |
-| [`no-remote`](examples/no-remote) | the first commit in a git repository with no remote, once per repository | `run`, a key per repository, and `${REPO}` in the prompt |
-| [`agent-docs`](examples/agent-docs) | the first write to a skill, `AGENTS.md` or `CLAUDE.md`, unless the writing skill it points to is already loaded | `[suppress]`, and `exclude` |
-| [`skill-the-user`](examples/skill-the-user) | the first time a session writes the author's name into a skill file | `file-write` with `match`: only added text, and only text that is new |
+| Example | Fires on | Pattern | Built with |
+| --- | --- | --- | --- |
+| [`tvly-search`](examples/tvly-search) | `tvly search` | Teach the agent to read a tool's output, on top of a skill you don't own | `command` |
+| [`comment-slop`](examples/comment-slop) | a commit whose added lines are mostly comments, counted by cloc | Judge the result of an act with a tool of your own, and say in the cue what it found | `run`, `${SHARE}` |
+| [`worktree-base`](examples/worktree-base) | a subagent started in its own git worktree | Warn about one option the agent picked for a tool call | `tool-input` |
+| [`no-remote`](examples/no-remote) | a commit in a git repository with no remote, once per repository | Fire once per place instead of once per session | `run` with a key, `${REPO}` |
+| [`agent-docs`](examples/agent-docs) | a write to a skill, `AGENTS.md` or `CLAUDE.md` | Stay silent when the agent already loaded the guidance | `[suppress]`, `exclude` |
+| [`skill-the-user`](examples/skill-the-user) | the author's name written into a skill file | Catch a slip in what the agent writes, not every write | `file-write` with `match` |
 
 ## ⏱️ Cost
 
