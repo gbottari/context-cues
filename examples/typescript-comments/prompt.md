@@ -1,1 +1,0 @@
-Comments in TypeScript say why the code is the way it is: a constraint, a decision, a trap. One line where one line will do. The code already says what it does, and the commit says what changed, so a comment repeats neither.

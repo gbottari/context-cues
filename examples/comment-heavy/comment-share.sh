@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Run step for the comment-heavy cue. Passes when the commit just made adds at least
+# MIN_COMMENT comment lines and they are at least MIN_SHARE percent of the comment and code
+# lines it adds, counted by cloc. Returns the share as SHARE for prompt.md.
+set -u
+MIN_COMMENT=5
+MIN_SHARE=30
+
+command -v cloc >/dev/null 2>&1 || exit 1
+payload=$(cat)
+cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')
+cwd=$(printf '%s' "$payload" | jq -r '.cwd // empty')
+
+# Where the commit ran: `git -C <dir>` wins, then a `cd <dir>` in the command, then the session cwd.
+dir=$(printf '%s' "$cmd" | grep -oE 'git[[:space:]]+-C[[:space:]]+[^[:space:];&|]+' | head -n 1 | sed -E 's/^git[[:space:]]+-C[[:space:]]+//')
+[ -n "$dir" ] || dir=$(printf '%s' "$cmd" | grep -oE '(^|[;&|[:space:]])cd[[:space:]]+[^[:space:];&|]+' | head -n 1 | sed -E 's/^.*cd[[:space:]]+//')
+dir=${dir#[\"\']}
+dir=${dir%[\"\']}
+case $dir in
+"~"*) dir=$HOME${dir#\~} ;;
+esac
+case $dir in
+"") dir=$cwd ;;
+/*) ;;
+*) dir=$cwd/$dir ;;
+esac
+[ -d "$dir" ] || exit 1
+top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || exit 1
+cd "$top" || exit 1
+git rev-parse -q --verify HEAD >/dev/null || exit 1
+
+# A first commit has no parent, so it is compared with the empty tree.
+base=$(git rev-parse -q --verify 'HEAD~1' 2>/dev/null) || base=$(git hash-object -t tree /dev/null)
+
+# A rewritten line counts as modified rather than added, and is written all the same.
+read -r comment code < <(cloc --git --diff "$base" HEAD --json --quiet 2>/dev/null |
+	jq -r '[.SUM.added, .SUM.modified] | "\(map(.comment // 0) | add) \(map(.code // 0) | add)"' 2>/dev/null)
+[ -n "${comment:-}" ] && [ "$comment" -ge "$MIN_COMMENT" ] || exit 1
+share=$((comment * 100 / (comment + code)))
+[ "$share" -ge "$MIN_SHARE" ] || exit 1
+jq -cn --arg share "$share" '{vars: {SHARE: $share}}'

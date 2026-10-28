@@ -76,11 +76,11 @@ Ask Claude Code for a cue in plain words; the `context-cue` skill builds and tes
 
 The cue fires after the first `tvly search` of a session, beside the results. The agent reads the top `score` before anything else, and treats a top score under about 0.1 as a failed search.
 
-### Keep a house style from fading
+### Keep comments short
 
-> _"Tell me our comment style the first time you add a TypeScript comment."_
+> _"When a commit is mostly comments, remind me how we write them."_
 
-The cue fires after the first comment the agent adds to a `.ts` or `.tsx` file, whether through an edit or a Bash write. It says comments explain why, in one line where one will do, and every later comment in the session follows it.
+The cue fires after the first commit of a session whose added lines are mostly comments, in any language cloc counts. It says comments explain why, in one line where one will do, and every later comment in the session follows it.
 
 ### Stop a habit in one kind of repository
 
@@ -128,7 +128,7 @@ One example per kind of check, each a cue the author runs.
 | Example | Fires on | Shows |
 | --- | --- | --- |
 | [`tvly-search`](examples/tvly-search) | the first `tvly search` a session runs | `command`, and extending a third-party skill |
-| [`typescript-comments`](examples/typescript-comments) | the first comment a session adds to a `.ts`/`.tsx` file, through Edit, Write or Bash | `file-write` with `match`: only added text, and only text that is new |
+| [`comment-heavy`](examples/comment-heavy) | the first commit of a session whose added lines are mostly comments, counted by cloc | `run` calling a tool of its own, named in the cue's README, and `${SHARE}` in the prompt |
 | [`worktree-base`](examples/worktree-base) | the first subagent a session starts in its own git worktree | `tool-input`: one field of the call's input |
 | [`no-remote`](examples/no-remote) | the first commit in a git repository with no remote, once per repository | `run`, a key per repository, and `${REPO}` in the prompt |
 | [`agent-docs`](examples/agent-docs) | the first write to a skill, `AGENTS.md` or `CLAUDE.md`, unless the writing skill it points to is already loaded | `[suppress]`, and `exclude` |

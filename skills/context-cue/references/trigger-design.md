@@ -2,7 +2,7 @@
 
 A context cue gets **one shot per session**. Every way a trigger can be wrong reduces to spending that shot on the wrong tool call, and all of them fail silently: the marker is set, the cue looks like it fired, and the work it governs happens unguided.
 
-The built-in checks in `cue.ini` are built to avoid the first three traps and the fifth; the patterns you give them, and any run step you write, can still walk into all five. Worked example throughout: the TypeScript-comments cue in the Context Cues repository (<https://github.com/gbottari/context-cues/tree/main/examples/typescript-comments>), which injects a comment-style rule the first time a session writes a comment into a `.ts`/`.tsx` file. Its first version shipped with three of the first four traps below and went months without visibly working.
+The built-in checks in `cue.ini` are built to avoid the first three traps and the fifth; the patterns you give them, and any run step you write, can still walk into all five. Worked example throughout: a cue that injects a comment-style rule the first time a session writes a comment into a `.ts`/`.tsx` file. Its first version shipped with three of the first four traps below and went months without visibly working.
 
 ## The five traps
 
@@ -51,7 +51,7 @@ The same goes for a command word: write `(^|[^[:alnum:]_-])tee[[:space:]]`, not 
 
 ## Prove it with a matrix, not one payload
 
-Firing once on a happy-path payload proves almost nothing; every trap above passes that test. List cases in `tests.json` and assert fired or silent both ways, one case per trap. A few rows of the TypeScript cue's list:
+Firing once on a happy-path payload proves almost nothing; every trap above passes that test. List cases in `tests.json` and assert fired or silent both ways, one case per trap. A few rows of that cue's list:
 
 ```json
 [

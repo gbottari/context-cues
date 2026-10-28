@@ -16,8 +16,16 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+      - name: Install cloc, which the comment-heavy example needs
+        run: |
+          case "$RUNNER_OS" in
+            Linux) sudo apt-get install -y cloc ;;
+            macOS) brew install cloc ;;
+            Windows) choco install cloc -y --no-progress ;;
+          esac
       - name: Tool versions
         run: |
+          cloc --version
           bash --version | head -1
           jq --version
           grep --version | head -1 || true

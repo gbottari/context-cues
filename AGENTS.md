@@ -19,7 +19,7 @@ Read `CONTRIBUTING.md` before changing a script, a cue, a test or a doc, and bef
 
 - **The skill folder is installed on its own.** Every file `SKILL.md` or its references point an agent at lives inside `skills/context-cue/`; a pointer into `examples/`, `tests/` or `docs/` breaks once installed. Link to the GitHub URL for anything outside it.
 - **Develop against a scratch install.** Point `CONTEXT_CUES_DIR` at a temporary folder of cues and `XDG_RUNTIME_DIR` at another for the markers, as `cue-test.sh` does. The live `~/.claude` belongs to whoever runs the session, and an edit there changes their sessions.
-- **Every example earns a feature.** Each example shows one kind of check or key, and is a cue someone runs. A feature with no example that needs it does not ship.
+- **Every example earns a feature.** Each example shows one kind of check or key, and is a cue someone runs. A feature with no example that needs it does not ship. The one exception is `match` on a `file-write` check, which `tests/dispatch-test.sh` covers.
 - **A trigger change is proven red, then green.** Break the trigger on purpose, watch its matrix go red, then restore it and watch it go green. A matrix that stays green on the broken version tests nothing.
 - **Cue text stays one short paragraph.** It lands mid-task; Claude Code cuts hook output past 10,000 characters to a preview.
 - **Check the plugin with `claude plugin validate .`** after touching `.claude-plugin/` or `hooks/hooks.json`; CI checks only that the files parse and the names match.
