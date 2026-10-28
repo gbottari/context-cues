@@ -20,7 +20,7 @@ Context cues are a token-efficient, deterministic way to steer agents during ses
 - **Keep a rule from fading in a long session.** `CLAUDE.md` loads at session start, while a cue arrives when the work it governs is in front of the agent.
 - **Add your own guidance to any skill.** Write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly.
 
-For example, the `comment-slop` cue fires after the first commit of a session whose added lines are mostly comments. The agent gets this beside the commit's output, as a system reminder ([`examples/comment-slop`](examples/comment-slop)):
+For example, the `comment-slop` cue fires after the first commit of a session whose added lines are at least 30% comments. The agent gets this beside the commit's output, as a system reminder ([`examples/comment-slop`](examples/comment-slop)):
 
 > PostToolUse:Bash hook additional context: This reminder fired because comments are 32% of the lines your last commit added, which can be a sign of documentation slop. The rules for comments: a comment says why the code is the way it is now (a constraint, a decision, a trap) and leaves what it does to the code and what changed to the commit. …
 
@@ -36,7 +36,7 @@ In Claude Code:
 /plugin install context-cues --marketplace gbottari/context-cues
 ```
 
-To make your first cue, ask Claude Code: "make a context cue that reminds you the staging database is a day old, the first time you query it."
+To try it, ask Claude Code in any git repository: "make a context cue that reminds you to check which branch you are on, the first time you run `git status`." Once the cue is installed, ask it to run `git status` twice: the agent gets the reminder after the first run and nothing after the second.
 
 See more: [installing from your shell, without the plugin, or an example cue by hand](docs/install.md).
 
@@ -48,11 +48,7 @@ There are three usual places to put guidance for a coding agent, and each one fa
 - **A plain hook repeats itself.** Its `if` field can narrow it to one command, such as `Bash(git *)`, but it fires on every match, so the same reminder lands after every call.
 - **Path-scoped `.claude/rules` files key only on file paths.** A plain read of a matching file can load one long before the work starts, and running a command never loads one.
 
-For a skill you don't own, `examples/tvly-search` shows how: a cue on `tvly search` adds guidance to Tavily's search skill.
-
-Anthropic's own plugins come closest. `security-guidance` adds a reminder once per file when an edit introduces a risky pattern, but only for its security rules and only on edits. `hookify` takes your own rules on commands and edits, but fires on every match, and an open issue ([#20747](https://github.com/anthropics/claude-code/issues/20747)) reports that its warnings reach you, not the agent. Context Cues is the general form: your own rules, on a command, a file write through any tool or a Bash redirect, or any tool input, each fired once and tested.
-
-| Job | Context cues | `AGENTS.md` or `CLAUDE.md` | Path rules | Skills | Hooks |
+| Job | Context cues | `AGENTS.md` or `CLAUDE.md` | Path rules | Skills | Plain hooks |
 | --- | :-: | :-: | :-: | :-: | :-: |
 | Remind the agent the first time it runs a given command | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Remind the agent the first time it writes a given kind of code, Bash writes included | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -64,7 +60,7 @@ Anthropic's own plugins come closest. `security-guidance` adds a reminder once p
 
 ## 🧭 Use cases
 
-Each one starts from a problem. You ask Claude Code for a cue in plain words, and the `context-cue` skill builds and tests it. All three are in [`examples/`](examples), with their tests.
+Each one starts from a problem. You ask Claude Code for a cue in plain words, and the `context-cue` skill builds and tests it. Both are in [`examples/`](examples), with their tests.
 
 ### The agent misreads a skill you didn't write
 
@@ -73,12 +69,6 @@ You installed a third-party skill for a search CLI. The agent takes a page of of
 Ask: _"When you search with `tvly`, remind yourself how to read the scores."_ After the first `tvly search` of a session, beside the results, the agent reads:
 
 > **Read the top `score` before the results.** Relevant hits usually score 0.65–0.90. A top score under about 0.1 means the search failed …
-
-### A rule in `CLAUDE.md` has faded by the time it matters
-
-Your `CLAUDE.md` says a comment explains why, in one line. Three hours into a session, the agent commits a change that is half comments.
-
-Ask: _"When a commit is mostly comments, remind me how we write them."_ After the first such commit, the agent reads that comments are 32% of the lines it just added, and the rules again: a comment says why the code is the way it is, in one line where one will do.
 
 ### A habit that is wrong in one kind of repository
 
@@ -92,7 +82,6 @@ Ask: _"In repos with no remote, don't offer to push."_ After the first commit in
 
 - **The cue arrives just after the first act, not before it.** Claude Code delivers hook context beside the tool result, even from a `PreToolUse` hook.
 - **Subagents do not get cues.** A subagent shares its parent's `session_id`, so a cue that fired for the parent counts as fired for the subagent, which never saw the text.
-- **The built-in `command` check can fire on a mention inside quotes.** It matches a command wherever a shell could run it, but it cannot see quoting. `echo "done; tvly search next"` fires a `tvly search` cue, and so does a heredoc line that starts with `tvly search`, or one that names it in Markdown backticks, since a backtick reads as command substitution. A `run` check that parses the command can rule these out.
 - **Claude Code caps hook output at 10,000 characters**, about 25 times the longest example cue. Past that it shows a 2,000-character preview, so guidance that long belongs in a doc the cue points to.
 
 ## 📐 Cue specification
@@ -134,7 +123,7 @@ Values run raw to the end of the line, so patterns need no escaping. Comments ar
 | Example | Fires on | Pattern | Built with |
 | --- | --- | --- | --- |
 | [`tvly-search`](examples/tvly-search) | `tvly search` | Teach the agent to read a tool's output, on top of a skill you don't own | `command` |
-| [`comment-slop`](examples/comment-slop) | a commit whose added lines are mostly comments, counted by cloc | Judge the result of an act with a tool of your own, and say in the cue what it found | `run`, `${SHARE}` |
+| [`comment-slop`](examples/comment-slop) | a commit whose added lines are at least 30% comments, counted by cloc | Judge the result of an act with a tool of your own, and say in the cue what it found | `run`, `${SHARE}` |
 | [`worktree-base`](examples/worktree-base) | a subagent started in its own git worktree | Warn about one option the agent picked for a tool call | `tool-input` |
 | [`no-remote`](examples/no-remote) | a commit in a git repository with no remote, once per repository | Fire once per place instead of once per session | `run` with a key, `${REPO}` |
 | [`agent-docs`](examples/agent-docs) | a write to a skill, `AGENTS.md` or `CLAUDE.md` | Stay silent when the agent already loaded the guidance | `[suppress]`, `exclude` |
