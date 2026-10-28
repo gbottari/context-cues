@@ -8,6 +8,7 @@ set -u
 MIN_COMMENT=5
 MIN_CODE=5
 MIN_SHARE=30
+MAX_BYTES=1048576
 
 command -v cloc >/dev/null 2>&1 || exit 1
 payload=$(cat)
@@ -35,17 +36,20 @@ git rev-parse -q --verify HEAD >/dev/null || exit 1
 # A first commit has no parent, so it is compared with the empty tree.
 base=$(git rev-parse -q --verify 'HEAD~1' 2>/dev/null) || base=$(git hash-object -t tree /dev/null)
 
-# The changed files go into two folders, before and after, for `cloc --diff`. cloc's own
-# `--git` mode must not be used: on Windows it reads back an empty archive and reports nothing.
+old=() new=() objects=''
+while IFS= read -r -d '' status && IFS= read -r -d '' f; do
+	[ "$status" = A ] || { old+=(":(literal)$f"); objects+="$base:$f"$'\n'; }
+	[ "$status" = D ] || { new+=(":(literal)$f"); objects+="HEAD:$f"$'\n'; }
+done < <(git diff --name-status -z --no-renames "$base" HEAD)
+
+# cloc reads every changed file in full, about 1 s per MB, and the plugin kills a hook at 10 s.
+bytes=$(printf '%s' "$objects" | git cat-file --batch-check='%(objectsize)' | awk '{ t += $1 } END { print t + 0 }')
+[ "$bytes" -le "$MAX_BYTES" ] || exit 1
+
+# One archive per side keeps the cost flat; cloc's own --git mode reports nothing on Windows.
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/comment-slop.XXXXXX") || exit 1
 trap 'rm -rf -- "$tmp"' EXIT
 mkdir "$tmp/old" "$tmp/new"
-# One archive per side keeps the cost flat however many files the commit touches.
-old=() new=()
-while IFS= read -r -d '' status && IFS= read -r -d '' f; do
-	[ "$status" = A ] || old+=(":(literal)$f")
-	[ "$status" = D ] || new+=(":(literal)$f")
-done < <(git diff --name-status -z --no-renames "$base" HEAD)
 [ ${#old[@]} -eq 0 ] || git archive --format=tar "$base" -- "${old[@]}" | tar -x -C "$tmp/old"
 [ ${#new[@]} -eq 0 ] || git archive --format=tar HEAD -- "${new[@]}" | tar -x -C "$tmp/new"
 
