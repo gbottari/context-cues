@@ -20,15 +20,13 @@ Context cues are a token-efficient, deterministic way to steer agents during ses
 - **Keep a rule from fading in a long session.** `CLAUDE.md` loads at session start, while a cue arrives when the work it governs is in front of the agent.
 - **Add your own guidance to any skill.** Write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly.
 
-For example, a cue for Tavily's search CLI fires after the first `tvly search` of a session. The agent gets this beside the search results, as a system reminder ([`examples/tvly-search`](examples/tvly-search)):
+For example, the `comment-slop` cue fires after the first commit of a session whose added lines are mostly comments. The agent gets this beside the commit's output, as a system reminder ([`examples/comment-slop`](examples/comment-slop)):
 
 ```text
-PostToolUse:Bash hook additional context: Reading `tvly search` results:
-
-- Read the top `score` before the results. Relevant hits usually score 0.65–0.90. A top score under about 0.1 means the search failed: …
+PostToolUse:Bash hook additional context: This reminder fired because comments are 32% of the lines your last commit added, which can be a sign of documentation slop. The rules for comments: a comment says why the code is the way it is now (a constraint, a decision, a trap) and leaves what it does to the code and what changed to the commit. …
 ```
 
-Later searches in the same session add nothing.
+Later commits in the same session add nothing.
 
 ## 🚀 Install
 
