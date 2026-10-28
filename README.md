@@ -1,7 +1,7 @@
 <h1 align="center">Context Cues</h1>
 
 <p align="center">
-  Just-in-time rules for Claude Code. Each one fires once, at the exact command or edit it is about, costs nothing until then, and comes with tests that prove it stays silent everywhere else.
+  Just-in-time rules for Claude Code: each one fires once, at the command or edit it is about.
 </p>
 
 <p align="center">
@@ -15,10 +15,10 @@
   <a href="#-install">Install</a> · <a href="#-where-it-fits">Where it fits</a> · <a href="#-use-cases">Use cases</a> · <a href="#-limits">Limits</a> · <a href="#-examples">Examples</a>
 </p>
 
-Context cues are a token-efficient, deterministic way to steer the agent automatically. A cue costs no tokens until it fires, and it fires on a pattern in the agent's own tool call, not on the model's judgement. Use one to:
+Context cues are a token-efficient, deterministic way to steer agents during sessions. Use one to:
 
-- **Keep a rule from fading in a long session.** `CLAUDE.md` loads at session start, and hours of work bury it. A cue arrives right after the first command or edit it governs, while that work is in front of the agent.
-- **Add your own guidance to a skill you don't own.** Write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly.
+- **Keep a rule from fading in a long session.** `CLAUDE.md` loads at session start, while a cue arrives when the work it governs is in front of the agent.
+- **Add your own guidance to any skill.** Write a cue for the command the skill teaches. The skill's files stay untouched, so its updates pull cleanly.
 
 For example, a cue for Tavily's search CLI fires after the first `tvly search` of a session. The agent gets this beside the search results, as a system reminder ([`examples/tvly-search`](examples/tvly-search)):
 
