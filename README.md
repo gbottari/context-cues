@@ -1,7 +1,7 @@
 <h1 align="center">Context Cues</h1>
 
 <p align="center">
-  Just-in-time rules for Claude Code: each one fires once per session, the first time the agent does the work it is about.
+  Just-in-time rules for Claude Code. Each one fires once, at the exact command or edit it is about, costs nothing until then, and comes with tests that prove it stays silent everywhere else.
 </p>
 
 <p align="center">
@@ -49,10 +49,12 @@ See more: [installing from your shell, without the plugin, or an example cue by 
 There are three usual places to put guidance for a coding agent, and each one fails in a predictable way:
 
 - **`AGENTS.md` and `CLAUDE.md` fade.** They load at session start. By the time the work they govern comes up, a long session has buried them.
-- **A hook on every edit is wasteful.** It spends tokens on the same reminder after every tool call.
+- **A plain hook repeats itself.** Its `if` field can narrow it to one command, such as `Bash(git *)`, but it fires on every match, so the same reminder lands after every call.
 - **Path-scoped `.claude/rules` files key only on file paths.** A plain read of a matching file can load one long before the work starts, and running a command never loads one.
 
 For a skill you don't own, `examples/tvly-search` shows how: a cue on `tvly search` adds guidance to Tavily's search skill.
+
+Anthropic's own plugins come closest. `security-guidance` adds a reminder once per file when an edit introduces a risky pattern, but only for its security rules and only on edits. `hookify` takes your own rules on commands and edits, but fires on every match, and an open issue ([#20747](https://github.com/anthropics/claude-code/issues/20747)) reports that its warnings reach you, not the agent. Context Cues is the general form: your own rules, on a command, a file write through any tool or a Bash redirect, or any tool input, each fired once and tested.
 
 | Job | Context cues | `AGENTS.md` or `CLAUDE.md` | Path rules | Skills | Hooks |
 | --- | :-: | :-: | :-: | :-: | :-: |
