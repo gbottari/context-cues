@@ -80,7 +80,7 @@ The cue fires after the first `tvly search` of a session, beside the results. Th
 
 > _"When a commit is mostly comments, remind me how we write them."_
 
-The cue fires after the first commit of a session whose added lines are mostly comments, in any language cloc counts. It says comments explain why, in one line where one will do, and asks the agent to trim that commit's comments and amend it.
+The cue fires after the first commit of a session whose added lines are mostly comments, in any language cloc counts. It says comments explain why, in one line where one will do, and asks the agent to look over that commit's comments, keep the ones that say why, and amend it if anything changed.
 
 ### Stop a habit in one kind of repository
 
