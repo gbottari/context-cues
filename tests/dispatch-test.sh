@@ -80,6 +80,35 @@ expect "another key, same session" "Hello bob" "$(dispatch "$R" "$(probe r1 bob)
 expect "exit 1 keeps it silent" - "$(dispatch "$R" "$(probe r2 skip)")"
 expect "exit 1 is not an error" 0 "$(log_lines runner)"
 
+# --- file-write with match: only text the call adds, by an editing tool or a Bash write ---
+F=$work/file-write
+cue "$F" comment "$(printf '[check]\nuses = file-write\npath = \\.tsx?([^[:alnum:]._-]|$)\nmatch = (^|[^:])//|/\\*\n')"
+# edit <session> <tool> <tool_input JSON>, bash_call <session> <command> [stdout]: payloads
+edit() { jq -cn --arg s "$1" --arg t "$2" --argjson i "$3" '{session_id: $s, tool_name: $t, tool_input: $i, cwd: "/"}'; }
+bash_call() { jq -cn --arg s "$1" --arg c "$2" --arg o "${3:-}" '{session_id: $s, tool_name: "Bash", tool_input: {command: $c}, tool_response: {stdout: $o}, cwd: "/"}'; }
+fw() { expect "file-write: $1" "$2" "$(dispatch "$F" "$3")"; }
+said="comment says hi"
+fw "Edit adds a comment" "$said" "$(edit f1 Edit '{"file_path": "/p/foo.ts", "old_string": "const a=1", "new_string": "// why\nconst a=1"}')"
+fw "Write with /* */" "$said" "$(edit f2 Write '{"file_path": "/p/App.tsx", "content": "/* header */\nexport const A=1\n"}')"
+fw "MultiEdit, the comment in its .ts edit" "$said" "$(edit f3 MultiEdit '{"edits": [{"file_path": "/p/x.py", "new_string": "x=1"}, {"file_path": "/p/y.ts", "new_string": "// note\nconst y=2"}]}')"
+fw "a Bash heredoc" "$said" "$(bash_call f4 $'cat > src/foo.ts <<EOF\n// why\nconst a=1\nEOF')"
+fw "rewording a comment" "$said" "$(edit f5 Edit '{"file_path": "/p/foo.ts", "old_string": "// old\nconst a=1", "new_string": "// new\nconst a=1"}')"
+fw "Bash tee -a" "$said" "$(bash_call f6 'printf "// why\n" | tee -a src/foo.ts')"
+fw "Bash sed -i" "$said" "$(bash_call f7 'sed -i "1i // why" src/foo.ts')"
+fw "a Markdown file quoting a comment" - "$(edit f8 Write '{"file_path": "/p/notes.md", "content": "In src/foo.ts:\n// why\n"}')"
+fw "editing beside a kept comment" - "$(edit f9 Edit '{"file_path": "/p/foo.ts", "old_string": "// keep\nconst a=1", "new_string": "// keep\nconst a=2"}')"
+fw "deleting a comment" - "$(edit f10 Edit '{"file_path": "/p/foo.ts", "old_string": "// stale\nconst a=1", "new_string": "const a=1"}')"
+fw "a write with no comment" - "$(edit f11 Write '{"file_path": "/p/foo.ts", "content": "export const a=1\n"}')"
+fw "grep output naming a comment" - "$(bash_call f12 'grep -rn "//" src/' $'src/foo.ts:12: // x\n')"
+fw "ls of a doubled slash" - "$(bash_call f13 'ls -la src//' $'foo.ts\n')"
+fw "a redirect to another file" - "$(bash_call f14 'grep "//" src/foo.ts > /tmp/o.txt')"
+fw "a command named like tee" - "$(bash_call f15 'mytee // src/foo.ts')"
+fw "a lookalike path, foo.ts.snap" - "$(edit f16 Edit '{"file_path": "/p/foo.ts.snap", "new_string": "// x"}')"
+fw "https:// is not a comment" - "$(edit f17 Write '{"file_path": "/p/u.ts", "content": "const u=\"https://x.dev\"\n"}')"
+fw "a Read" - "$(jq -cn '{session_id: "f18", tool_name: "Read", tool_input: {file_path: "/p/foo.ts"}, tool_response: "// x\n"}')"
+fw "first comment of a session" "$said" "$(edit f19 Write '{"file_path": "/p/a.ts", "content": "// one\n"}')"
+fw "second comment, same session" - "$(edit f19 Write '{"file_path": "/p/b.ts", "content": "// two\n"}')"
+
 # --- no carriage return reaches the agent: not from a prompt.md saved with CRLF line
 # endings, and not from jq on Windows, which writes every line break of -r output as \r\n.
 # These read the hook's JSON as Claude Code does, with no jq -r of their own in between. ---
