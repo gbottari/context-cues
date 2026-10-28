@@ -87,3 +87,13 @@ cp -R skills/context-cue ~/.claude/skills/
 ```
 
 A manual install that still keeps the hooks in `~/.claude/context-cues/`, beside the cues, works as is. To move it, copy the hooks to `~/.claude/hooks/context-cues/` as above, change the two `command` paths in `settings.json`, and delete the old `dispatch.sh`, `rearm.sh` and `command-position.sh` from `~/.claude/context-cues/`.
+
+## Removing it
+
+Turn the plugin off with `claude plugin disable context-cues@context-cues`, or remove it with `claude plugin uninstall context-cues@context-cues`. Either way your cues stay in `~/.claude/context-cues/`; delete that folder if you no longer want them. To silence one cue, move its folder out of `~/.claude/context-cues/`.
+
+Without the plugin, delete the two hook entries from `~/.claude/settings.json`, then the hooks and the skill:
+
+```bash
+rm -r ~/.claude/hooks/context-cues ~/.claude/skills/context-cue
+```
