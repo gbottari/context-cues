@@ -15,6 +15,7 @@ Each cue is a folder, `~/.claude/context-cues/<name>/`:
 | `cue.ini` | the checks: when the cue fires |
 | `prompt.md` | the text the agent reads; `${VAR}` takes a value from a run step |
 | `tests.json` | the fired-or-silent cases [`cue-test.sh`](scripts/cue-test.sh) runs |
+| `README.md` | for the person who installs it: what the cue fires on, why, and any tool it needs |
 | any script | a run step's script, named in `cue.ini` |
 
 One hook, `dispatch.sh`, reads every folder after each call of a tool some cue checks: `Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|Skill`. With the Context Cues plugin it is registered already; a manual install registers it once in `~/.claude/settings.json`, under `PostToolUse` with that matcher. A check on any other tool never runs: the plugin's matcher is fixed, and a manual install widens its own. A new cue needs no settings change: the folder is live as soon as `cue.ini` exists, so build it elsewhere and move it in once its tests pass.
@@ -38,8 +39,9 @@ Build the folder in a scratch directory, `<scratch>/<name>/`; the folder name is
 1. **Write `prompt.md`.** One short paragraph: the target behaviour, stated positively, and where fuller material lives. Done when the text reads as a standing rule, not as a complaint about one edit.
 2. **Write `cue.ini`**: one `[check]` section per condition, from the built-ins below. Every check must pass, in order, and the first that fails stops the rest. Done when the checks name the act, not the file type: [trigger-design.md](references/trigger-design.md) has the five ways a trigger fires on the wrong call.
 3. **Write `tests.json`**: one case per trap in [trigger-design.md](references/trigger-design.md), each fired or silent. The header of [`cue-test.sh`](scripts/cue-test.sh) shows the format. A command cue gets the command matrix, which covers every way a shell runs the command, every mere mention, and once per session; add one case per near miss of your own. A file-write cue gets the act through Edit, Write, MultiEdit and a Bash redirect (fired), and deleting the text, editing beside text already there, only reading a matching file, and a lookalike path (silent). Add the same `session` twice to check the marker.
-4. **Run `bash <skill dir>/scripts/cue-test.sh <scratch>/<name>`.** Then break a check on purpose and watch a case fail: a test that stays green on a broken check tests nothing. Done when it reports ok, and went red on the broken check.
-5. **Move the folder into `~/.claude/context-cues/`.** Moving it is a change to the user's sessions they approve; when the move is denied, hand back the folder's path and stop. Then the live check: in a fresh session, perform the act and confirm the prompt arrives as a system reminder (`claude --debug` logs hook output). Done when the reminder is observed in a live session, not reasoned about.
+4. **Write `README.md`**: a few lines on what the cue fires on and why, and any tool beyond bash and jq it needs. Done when someone who never saw this session can tell whether to install it.
+5. **Run `bash <skill dir>/scripts/cue-test.sh <scratch>/<name>`.** Then break a check on purpose and watch a case fail: a test that stays green on a broken check tests nothing. Done when it reports ok, and went red on the broken check.
+6. **Move the folder into `~/.claude/context-cues/`.** Moving it is a change to the user's sessions they approve; when the move is denied, hand back the folder's path and stop. Then the live check: in a fresh session, perform the act and confirm the prompt arrives as a system reminder (`claude --debug` logs hook output). Done when the reminder is observed in a live session, not reasoned about.
 
 ## cue.ini
 

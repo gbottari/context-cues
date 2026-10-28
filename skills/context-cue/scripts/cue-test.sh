@@ -96,6 +96,7 @@ for dir in "$@"; do
 	name=${dir##*/}
 	cue_failures=0
 	if [ ! -r "$dir/tests.json" ]; then fail "no tests.json in $dir"; continue; fi
+	[ -s "$dir/README.md" ] || fail "no README.md in $dir: say what the cue fires on, why, and any tool it needs"
 	install=$work/$name/cues
 	marks=$work/$name/marks
 	log=$marks/context-cues/errors.log

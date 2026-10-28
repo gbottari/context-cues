@@ -97,7 +97,7 @@ The cue fires after the first commit in a repository with no remote, once for ea
 
 ## 📐 Cue specification
 
-A cue is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. The `context-cue` skill walks the agent through a new cue: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
+A cue is a folder with two small files: `cue.ini` says when it fires, and `prompt.md` holds the text. The `context-cue` skill walks the agent through a new cue: write `prompt.md`, choose the checks in `cue.ini`, list fired and silent cases in `tests.json`, say what the cue is for in a short `README.md`, run them with the skill's `cue-test.sh`, and move the folder into `~/.claude/context-cues/`.
 
 A cue that fires the first time a session adds a comment to a TypeScript file:
 
