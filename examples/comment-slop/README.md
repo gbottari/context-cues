@@ -2,7 +2,7 @@
 
 Tells the agent how to write comments the first time in a session that a commit's added lines are mostly comments, in any language [cloc](https://github.com/AlDanial/cloc) counts.
 
-It fires after a `git commit` that adds at least 5 comment lines making up at least 30% of the comment and code lines it adds; `MIN_COMMENT` and `MIN_SHARE` at the top of `comment-share.sh` set both. Lines the commit rewrites count with the lines it adds, and a first commit is compared with an empty tree. It counts comments and does not judge them: a commit of short, useful comments can fire it, and one rambling comment in a large commit will not.
+It fires after a `git commit` that adds at least 5 comment lines and 5 code lines, with comments making up at least 30% of them; `MIN_COMMENT`, `MIN_CODE` and `MIN_SHARE` at the top of `comment-share.sh` set all three. The code floor keeps a commit that only edits comments, such as a docs pass, silent. Lines the commit rewrites count with the lines it adds, and a first commit is compared with an empty tree. It counts comments and does not judge them: a commit of short, useful comments can fire it, and one rambling comment in a large commit will not.
 
 Needs `cloc` on `PATH`. Without it the cue stays silent. Install it with your package manager: `pacman -S cloc`, `apt install cloc`, `brew install cloc` or `choco install cloc`.
 

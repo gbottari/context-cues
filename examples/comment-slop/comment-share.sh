@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Run step for the comment-slop cue. Passes when the commit just made adds at least
-# MIN_COMMENT comment lines and they are at least MIN_SHARE percent of the comment and code
-# lines it adds, counted by cloc. Returns the share as SHARE for prompt.md.
+# MIN_COMMENT comment lines and MIN_CODE code lines, and the comments are at least MIN_SHARE
+# percent of the comment and code lines it adds, counted by cloc. Returns the share as SHARE
+# for prompt.md. The code floor keeps a commit that only edits comments, such as a docs pass,
+# silent: writing comments was its task.
 set -u
 MIN_COMMENT=5
+MIN_CODE=5
 MIN_SHARE=30
 
 command -v cloc >/dev/null 2>&1 || exit 1
@@ -50,7 +53,7 @@ done < <(git diff --name-only -z --no-renames "$base" HEAD)
 # Windows ends its output with \r\n, which would break the arithmetic below.
 read -r comment code < <(cloc --diff "$tmp/old" "$tmp/new" --json --quiet 2>/dev/null |
 	jq -r '[.SUM.added, .SUM.modified] | "\(map(.comment // 0) | add) \(map(.code // 0) | add)"' 2>/dev/null | tr -d '\r')
-[ -n "${comment:-}" ] && [ "$comment" -ge "$MIN_COMMENT" ] || exit 1
+[ -n "${comment:-}" ] && [ "$comment" -ge "$MIN_COMMENT" ] && [ "$code" -ge "$MIN_CODE" ] || exit 1
 share=$((comment * 100 / (comment + code)))
 [ "$share" -ge "$MIN_SHARE" ] || exit 1
 jq -cn --arg share "$share" '{vars: {SHARE: $share}}'
