@@ -40,14 +40,14 @@ base=$(git rev-parse -q --verify 'HEAD~1' 2>/dev/null) || base=$(git hash-object
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/comment-slop.XXXXXX") || exit 1
 trap 'rm -rf -- "$tmp"' EXIT
 mkdir "$tmp/old" "$tmp/new"
-while IFS= read -r -d '' f; do
-	for side in old new; do
-		[ $side = old ] && rev=$base || rev=HEAD
-		git cat-file -e "$rev:$f" 2>/dev/null || continue
-		mkdir -p "$tmp/$side/$(dirname "$f")"
-		git show "$rev:$f" >"$tmp/$side/$f"
-	done
-done < <(git diff --name-only -z --no-renames "$base" HEAD)
+# One archive per side keeps the cost flat however many files the commit touches.
+old=() new=()
+while IFS= read -r -d '' status && IFS= read -r -d '' f; do
+	[ "$status" = A ] || old+=(":(literal)$f")
+	[ "$status" = D ] || new+=(":(literal)$f")
+done < <(git diff --name-status -z --no-renames "$base" HEAD)
+[ ${#old[@]} -eq 0 ] || git archive --format=tar "$base" -- "${old[@]}" | tar -x -C "$tmp/old"
+[ ${#new[@]} -eq 0 ] || git archive --format=tar HEAD -- "${new[@]}" | tar -x -C "$tmp/new"
 
 # A rewritten line counts as modified rather than added, and is written all the same. jq on
 # Windows ends its output with \r\n, which would break the arithmetic below.
