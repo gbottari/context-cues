@@ -395,9 +395,12 @@ run_step() {
 	# The watchdog must not hold the hook's stdout open, or Claude Code waits for it.
 	{ sleep $RUN_SECONDS && kill "$pid" && : >"$tmp/timed-out"; } >/dev/null 2>&1 &
 	dog=$!
-	wait "$pid"
+	# Each killed job is reaped by a wait with stderr closed, because bash 3.2 reports a job
+	# killed by a signal on stderr, which the hook must keep empty.
+	wait "$pid" 2>/dev/null
 	rc=$?
 	kill "$dog" 2>/dev/null
+	wait "$dog" 2>/dev/null
 	out=$(<"$tmp/out")
 	if [ -e "$tmp/timed-out" ]; then
 		ERR="run: ${S_RUN[$1]} timed out after ${RUN_SECONDS}s"
