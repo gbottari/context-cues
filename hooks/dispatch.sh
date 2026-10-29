@@ -310,7 +310,6 @@ write_targets() {
 				if (takes_files) { if (t !~ /^-/) emit(t); continue }
 				if (t ~ /(^|\/)tee$/) { takes_files = 1; continue }
 				if (t ~ /(^|\/)(sed|perl)$/) {
-					# -i as an option word: -i, -i.bak, -pi, -Ei, --in-place; not -MFile::Find
 					for (k = i + 1; k <= nw; k++) if (w[k] ~ /^-[a-zA-Z]*i([^a-zA-Z]|$)/ || w[k] ~ /^--in-place/) { takes_files = 1; break }
 				}
 			}

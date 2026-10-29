@@ -129,6 +129,7 @@ aw "sed -Ei" "notes says hi" a9 "sed -Ei 's/a+/b/' notes.md"
 aw "sed --in-place=.bak" "notes says hi" a10 "sed --in-place=.bak 's/a/b/' notes.md"
 aw "perl -pi.bak" "notes says hi" a11 "perl -pi.bak -e 's/a/b/' notes.md"
 aw "-i inside a sed script is no option" - a12 "sed -n 's/-i//p' notes.md"
+aw "an i inside a perl -M module is no -i" - a13 "perl -MFile::Find -e 1 notes.md"
 aw "a longer path" - a6 'echo hi > old-notes.md'
 aw "the file only read" - a7 'cat notes.md > copy.txt'
 aw "2>&1 is no target" - a8 'make 2>&1 | grep notes.md'
