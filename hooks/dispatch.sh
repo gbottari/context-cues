@@ -66,7 +66,7 @@ valid_re() {
 }
 spend() { { mkdir -p "$MARK_ROOT/$sid" && : >"$MARK_ROOT/$sid/$1"; } 2>/dev/null; }
 fail_cue() {
-	mkdir -p "$MARK_ROOT" && printf '%s %s: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$2" >>"$ERROR_LOG"
+	printf '%s %s: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$2" >>"$ERROR_LOG"
 	spend "$1"
 }
 
@@ -195,7 +195,7 @@ else
 	}
 ' "${files[@]}")
 	eval "$code"
-	if [ -z "$unreadable" ] && mkdir -p "$MARK_ROOT"; then
+	if [ -z "$unreadable" ]; then
 		printf '# %s\n%s\n' "${files[*]}" "$code" >"$cache.$$" && mv -f "$cache.$$" "$cache"
 	fi
 fi
