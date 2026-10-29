@@ -110,6 +110,20 @@ fw "a Read" - "$(jq -cn '{session_id: "f18", tool_name: "Read", tool_input: {fil
 fw "first comment of a session" "$said" "$(edit f19 Write '{"file_path": "/p/a.ts", "content": "// one\n"}')"
 fw "second comment, same session" - "$(edit f19 Write '{"file_path": "/p/b.ts", "content": "// two\n"}')"
 
+# A path pattern anchored with ^ means the start of the written path, for a Bash write as for
+# an Edit: each target the command writes is matched on its own.
+A=$work/anchored-path
+cue "$A" notes "$(printf '[check]\nuses = file-write\npath = ^notes\\.md$\n')"
+aw() { expect "anchored path: $1" "$2" "$(dispatch "$A" "$(bash_call "$3" "$4")")"; }
+aw "a redirect with no space" "notes says hi" a1 'echo hi >notes.md'
+aw "an append" "notes says hi" a2 'echo hi >> notes.md'
+aw "a quoted target" "notes says hi" a3 "echo hi > 'notes.md'"
+aw "tee, the file second" "notes says hi" a4 'echo hi | tee -a log.txt notes.md'
+aw "sed -i" "notes says hi" a5 "sed -i 's/a/b/' notes.md"
+aw "a longer path" - a6 'echo hi > old-notes.md'
+aw "the file only read" - a7 'cat notes.md > copy.txt'
+aw "2>&1 is no target" - a8 'make 2>&1 | grep notes.md'
+
 # --- no carriage return reaches the agent: not from a prompt.md saved with CRLF line
 # endings, and not from jq on Windows, which writes every line break of -r output as \r\n.
 # These read the hook's JSON as Claude Code does, with no jq -r of their own in between. ---

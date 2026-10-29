@@ -230,19 +230,19 @@ has_line() {
 	done <<<"$2"
 	return 1
 }
-# writes_path <path ERE> <exclude ERE>: true when a file the call names matches the path,
-# case-insensitively, and not the exclude
+# writes_path <path ERE> <exclude ERE> <names>: true when one of the file names, one per line,
+# matches the path, case-insensitively, and not the exclude
 writes_path() {
-	local p=$1 x=$2 line hit=1
-	if [ ${#paths} -ge 2000 ]; then
-		if [ -n "$x" ]; then grep -vE -- "$x" <<<"$paths" | grep -qiE -- "$p"; else grep -qiE -- "$p" <<<"$paths"; fi
+	local p=$1 x=$2 names=$3 line hit=1
+	if [ ${#names} -ge 2000 ]; then
+		if [ -n "$x" ]; then grep -vE -- "$x" <<<"$names" | grep -qiE -- "$p"; else grep -qiE -- "$p" <<<"$names"; fi
 		return
 	fi
 	shopt -s nocasematch
 	while IFS= read -r line || [ -n "$line" ]; do
 		[ -n "$x" ] && [[ $line =~ $x ]] && continue
 		[[ $line =~ $p ]] && hit=0 && break
-	done <<<"$paths"
+	done <<<"$names"
 	shopt -u nocasematch
 	return $hit
 }
@@ -257,6 +257,7 @@ fi
 
 # One jq run reads everything the checks look at, as shell assignments.
 tool='' cmd='' paths='' added='' old='' input=''
+targets='' targets_read=''
 vars=$(jq -r --arg fields "$fields" '
 	def s: if . == null then "" elif type == "string" then . else tojson end;
 	def lines(f): [f | select(. != null) | s] | join("\n");
@@ -287,11 +288,35 @@ field_value() {
 norm() { sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' | sort -u; }
 keep() { if [ -n "$1" ]; then grep -E -- "($1)"; else cat; fi; }
 
-# A path counts as written by Bash only as a redirect target, after tee, or under sed -i or
-# perl -i. Word boundaries are spelled out because `\b` is not portable across grep builds.
-write_target_re() {
-	local q="'\"" p=$1
-	WRITE_RE="(>>?[[:space:]]*[$q]?[^$q|[:space:]]*$p|(^|[^[:alnum:]_-])tee([[:space:]]+-a)?[[:space:]]+[$q]?[^$q|[:space:]]*$p|(^|[^[:alnum:]_-])(sed|perl)[[:space:]][^|;]*-i[^|;]*$p)"
+# write_targets: prints the files the Bash command writes, one per line, so a path pattern
+# sees each one whole, the way it sees an Edit's file_path: redirect targets, tee's file
+# operands, and the operands of sed -i and perl -i. Words split on blanks with quotes
+# dropped, so a quoted name holding a space comes out in pieces.
+write_targets() {
+	awk -v Q="'" '
+	function emit(t) { gsub("[\"" Q "]", "", t); if (t != "") print t }
+	{
+		ns = split($0, seg, /[|;&]/)
+		for (s = 1; s <= ns; s++) {
+			nw = split(seg[s], w, /[ \t]+/)
+			mode = ""; next_is_target = 0
+			for (i = 1; i <= nw; i++) {
+				t = w[i]
+				if (t == "") continue
+				if (next_is_target) { emit(t); next_is_target = 0; continue }
+				if ((j = index(t, ">")) > 0) {
+					r = substr(t, j + 1); sub(/^>/, "", r)
+					if (r == "") next_is_target = 1; else emit(r)
+					continue
+				}
+				if (mode != "") { if (t !~ /^-/) emit(t); continue }
+				if (t ~ /(^|\/)tee$/) { mode = "tee"; continue }
+				if (t ~ /(^|\/)(sed|perl)$/) {
+					for (k = i + 1; k <= nw; k++) if (index(w[k], "-i")) { mode = "in-place"; break }
+				}
+			}
+		}
+	}'
 }
 
 # check <i>: runs section i against this call. Returns 0 when it passes, 1 when it does
@@ -314,7 +339,7 @@ check() {
 		[ -n "$p" ] || { ERR="uses = file-write needs path"; return 2; }
 		p="($p)"
 		if tool_is "$FILE_TOOLS"; then
-			writes_path "$p" "$x" || return 1
+			writes_path "$p" "$x" "$paths" || return 1
 			new=$(keep "$m" <<<"$added" | norm)
 			[ -n "$new" ] || return 1
 			# an Edit quotes the lines around it verbatim, so the match has to be new
@@ -323,8 +348,10 @@ check() {
 			[ -z "$was" ] || grep -qvxF -f <(printf '%s\n' "$was") <<<"$new"
 		elif tool_is Bash; then
 			[ -n "$x" ] && has_line "$x" "$cmd" && return 1
-			write_target_re "$p"
-			has_line "$WRITE_RE" "$cmd" || return 1
+			# most commands write nothing, and those skip the awk run; the rest run it once
+			case $cmd in *'>'* | *tee* | *sed* | *perl*) ;; *) return 1 ;; esac
+			[ -n "$targets_read" ] || { targets=$(write_targets <<<"$cmd"); targets_read=1; }
+			writes_path "$p" "$x" "$targets" || return 1
 			[ -z "$m" ] || has_line "($m)" "$cmd"
 		else
 			return 1

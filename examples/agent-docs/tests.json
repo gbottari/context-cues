@@ -4,6 +4,11 @@
   { "want": "fired", "label": "Write a slash command", "tool": "Write", "input": { "file_path": "/p/.claude/commands/ship.md", "content": "Ship it." } },
   { "want": "fired", "label": "Write a skill reference", "tool": "Write", "input": { "file_path": "/p/skills/foo/references/traps.md", "content": "Trap one." } },
   { "want": "fired", "label": "bash heredoc into CLAUDE.md", "command": "cat > CLAUDE.md <<EOF\nRun the tests.\nEOF" },
+  { "want": "fired", "label": "bash heredoc into a bare AGENTS.md", "command": "cat >AGENTS.md <<EOF\nRun the tests.\nEOF" },
+  { "want": "fired", "label": "bash append to a bare AGENTS.md", "command": "echo 'Run the tests.' >>AGENTS.md" },
+  { "want": "fired", "label": "tee into a bare AGENTS.md", "command": "echo 'Run the tests.' | tee AGENTS.md" },
+  { "want": "fired", "label": "tee -a, the doc second", "command": "printf 'x\\n' | tee -a notes.txt skills/foo/SKILL.md" },
+  { "want": "fired", "label": "bash heredoc into a relative rules file", "command": "cat > .claude/rules/tests.md <<EOF\nRun the tests.\nEOF" },
 
   {"want": "silent", "label": "a README that names SKILL.md", "tool": "Write", "input": {"file_path": "/p/README.md", "content": "Edit skills/foo/SKILL.md to change it."}},
   { "want": "silent", "label": "Write a README", "tool": "Write", "input": { "file_path": "/p/README.md", "content": "Hello" } },
@@ -11,6 +16,8 @@
   { "want": "silent", "label": "Read a SKILL.md", "tool": "Read", "input": { "file_path": "/p/skills/foo/SKILL.md" } },
   { "want": "silent", "label": "Edit that only removes a line", "tool": "Edit", "input": { "file_path": "/p/AGENTS.md", "old_string": "# Repo\nOld line.", "new_string": "# Repo" } },
   { "want": "silent", "label": "cat a SKILL.md", "command": "cat skills/foo/SKILL.md", "response": "---\nname: foo\n---\n" },
+  { "want": "silent", "label": "copy AGENTS.md out", "command": "cat AGENTS.md > /tmp/agents-copy.txt" },
+  { "want": "silent", "label": "a note that names AGENTS.md", "command": "echo 'see AGENTS.md' > notes.txt" },
 
   { "want": "silent", "label": "loading the skill first", "session": "loaded", "tool": "Skill", "input": { "skill": "mattpocock-skills:writing-for-agents" } },
   { "want": "silent", "label": "then writing a SKILL.md", "session": "loaded", "tool": "Write", "input": { "file_path": "/p/skills/foo/SKILL.md", "content": "x" } },
