@@ -7,7 +7,7 @@ Context Cues are Claude Code hooks that inject one piece of guidance the first t
 | Path | Installed to | What it is |
 | --- | --- | --- |
 | `.claude-plugin/` | the plugin cache | `plugin.json` and `marketplace.json`: the repo root is both the marketplace and its one plugin |
-| `hooks/` | the plugin, or `~/.claude/hooks/context-cues/` by hand | `dispatch.sh` (the one PostToolUse hook, reading every cue folder), `rearm.sh` (SessionStart re-arm), `command-position.sh` (sourced by the dispatcher), `hooks.json` (registers both hooks for the plugin) |
+| `hooks/` | the plugin, or `~/.claude/hooks/context-cues/` by hand | `dispatch.sh` (the one PostToolUse hook, reading every cue folder), `rearm.sh` (SessionStart re-arm), `command-position.sh` (sourced by the dispatcher), `mark-root.sh` (the marker folder, sourced by both hooks), `hooks.json` (registers both hooks for the plugin) |
 | `skills/context-cue/` | the plugin, or `~/.claude/skills/context-cue/` by hand | The skill: `SKILL.md`, `scripts/cue-test.sh` (runs a cue folder's `tests.json` through the dispatcher), `references/trigger-design.md` |
 | `examples/` | `~/.claude/context-cues/`, optional | One cue folder per kind of check: `cue.ini`, `prompt.md`, `tests.json`, and any run-step script |
 | `tests/` | not installed | `dispatch-test.sh` for the dispatcher itself, `cue-test-test.sh` for the skill's `cue-test.sh`; `run.sh` runs both and every example's `tests.json` |
