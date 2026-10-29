@@ -177,6 +177,22 @@ dispatch "$B" "$(probe b1 again)" >/dev/null
 for c in $broken; do expect "$c is logged once per session" 1 "$(log_lines " $c: ")"; done
 expect "the crash's stderr is logged" 1 "$(log_lines 'run-crashes: .*boom')"
 
+# A run step that hangs is stopped well inside the hook's 10 s timeout, logged, and spent,
+# and the cue after it in the loop still fires.
+H=$work/hangs
+cue "$H" a-hangs "$(printf '[check]\nrun = hang.sh\n')"
+printf 'sleep 20\n' >"$H/a-hangs/hang.sh"
+cue "$H" b-healthy "$ok"
+started=$(date +%s)
+out=$(dispatch "$H" "$(probe h1 anything)")
+expect "a hung run step stays silent" - "$(printf '%s\n' "$out" | grep '^a-hangs says hi')"
+expect "the cue after a hung run step fires" "b-healthy says hi" "$out"
+expect "a hung run step is stopped in time" yes "$([ $(($(date +%s) - started)) -lt 9 ] && echo yes)"
+expect "a hung run step is logged as timed out" 1 "$(log_lines 'a-hangs: .*timed out')"
+started=$(date +%s)
+dispatch "$R" "$(probe h2 quick)" >/dev/null
+expect "a run step that finishes leaves nothing holding the hook open" yes "$([ $(($(date +%s) - started)) -lt 3 ] && echo yes)"
+
 # The tool filter joins every cue's tools into one pattern, so it must leave out a broken one.
 G=$work/bad-tools-alone
 cue "$G" healthy "$ok"

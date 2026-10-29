@@ -349,20 +349,35 @@ check() {
 
 # run_step <i>: runs the section's script with the payload on stdin. Exit 0 passes and may
 # print {"key": "...", "vars": {...}}; exit 1 does not pass; any other exit is an error.
+# A script still running after RUN_SECONDS is killed and counts as an error, so one hung
+# step cannot hold every call up to Claude Code's 10 s hook timeout, which would kill the
+# hook before the step is logged and spent, and silence the cues after it.
+RUN_SECONDS=5
 run_step() {
-	local script=$CUES_DIR/$cue/${S_RUN[$1]} out rc errf
+	local script=$CUES_DIR/$cue/${S_RUN[$1]} out rc tmp pid dog
 	case ${S_RUN[$1]} in /* | *..*) ERR="run must name a file inside the cue folder"; return 2 ;; esac
 	[ -f "$script" ] || { ERR="run: ${S_RUN[$1]} not found"; return 2; }
-	errf=$(mktemp "${TMPDIR:-/tmp}/context-cues.XXXXXX")
+	tmp=$(mktemp -d "${TMPDIR:-/tmp}/context-cues.XXXXXX")
+	printf '%s' "$payload" >"$tmp/in"
 	case $script in
-	*.sh) out=$(printf '%s' "$payload" | CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue bash "$script" 2>"$errf") ;;
-	*) out=$(printf '%s' "$payload" | CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue "$script" 2>"$errf") ;;
+	*.sh) CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue bash "$script" <"$tmp/in" >"$tmp/out" 2>"$tmp/err" & ;;
+	*) CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue "$script" <"$tmp/in" >"$tmp/out" 2>"$tmp/err" & ;;
 	esac
+	pid=$!
+	# The watchdog must not hold the hook's stdout open, or Claude Code waits for it.
+	{ sleep $RUN_SECONDS && kill "$pid" && : >"$tmp/timed-out"; } >/dev/null 2>&1 &
+	dog=$!
+	wait "$pid"
 	rc=$?
-	if [ $rc -gt 1 ]; then
-		ERR="run: ${S_RUN[$1]} exited $rc: $(tr '\n' ' ' <"$errf" | cut -c1-300)"
+	kill "$dog" 2>/dev/null
+	out=$(<"$tmp/out")
+	if [ -e "$tmp/timed-out" ]; then
+		ERR="run: ${S_RUN[$1]} timed out after ${RUN_SECONDS}s"
+		rc=2
+	elif [ $rc -gt 1 ]; then
+		ERR="run: ${S_RUN[$1]} exited $rc: $(tr '\n' ' ' <"$tmp/err" | cut -c1-300)"
 	fi
-	rm -f "$errf"
+	rm -rf "$tmp"
 	[ $rc -le 1 ] || return 2
 	[ $rc -eq 0 ] || return 1
 	[ -n "$out" ] || return 0
