@@ -8,7 +8,7 @@
   <a href="https://github.com/gbottari/context-cues/actions/workflows/test.yml"><img src="https://github.com/gbottari/context-cues/actions/workflows/test.yml/badge.svg" alt="test"/></a>
   <a href="https://github.com/gbottari/context-cues/releases/latest"><img src="https://img.shields.io/github/v/release/gbottari/context-cues" alt="Latest release"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/gbottari/context-cues" alt="License: MIT"/></a>
-  <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-blue" alt="Platforms: Linux, macOS, Windows"/>
+  <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows%20%28Git%20Bash%29-blue" alt="Platforms: Linux, macOS, Windows (Git Bash)"/>
 </p>
 
 <p align="center">
