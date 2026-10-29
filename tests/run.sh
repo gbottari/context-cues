@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Runs every test and exits non-zero if any failed: the dispatcher's own test, the test of
-# the skill's cue-test.sh, then each example cue's tests.json through cue-test.sh.
+# Runs every test and exits non-zero if any failed.
 set -u
 repo=$(cd "$(dirname "$0")/.." && pwd)
 status=0
