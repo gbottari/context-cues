@@ -381,8 +381,10 @@ run_step() {
 	[ $rc -le 1 ] || return 2
 	[ $rc -eq 0 ] || return 1
 	[ -n "$out" ] || return 0
-	out=$(printf '%s' "$out" | jq -c '{key: (.key // "" | tostring), vars: (.vars // {} | with_entries(.value |= tostring))}' 2>/dev/null) ||
-		{ ERR="run: ${S_RUN[$1]} printed something that is not a JSON object"; return 2; }
+	# -s reads the whole output, so a second object fails here instead of in the prompt fill
+	out=$(printf '%s' "$out" | jq -cs 'if length == 1 and (.[0] | type) == "object" then .[0] else error end
+		| {key: (.key // "" | tostring), vars: (.vars // {} | with_entries(.value |= tostring))}' 2>/dev/null) ||
+		{ ERR="run: ${S_RUN[$1]} printed something other than one JSON object"; return 2; }
 	key=$(printf '%s' "$out" | jq -r .key)
 	cue_vars=$(printf '%s' "$out" | jq -c .vars)
 	return 0

@@ -165,7 +165,9 @@ cue "$B" run-crashes "$(printf '[check]\nrun = crash.sh\n')"
 printf 'echo boom >&2\nexit 3\n' >"$B/run-crashes/crash.sh"
 cue "$B" run-not-json "$(printf '[check]\nrun = talk.sh\n')"
 printf 'echo hello\n' >"$B/run-not-json/talk.sh"
-broken="unknown-key unknown-section key-before-section no-equals set-twice no-check empty uses-and-run neither unknown-uses no-match bad-match bad-tools no-prompt run-missing run-outside run-crashes run-not-json"
+cue "$B" run-two-objects "$(printf '[check]\nrun = two.sh\n')" 'Hi ${A}.'
+printf '%s\n' "echo '{\"vars\": {\"A\": \"1\"}}'" "echo '{\"vars\": {\"A\": \"2\"}}'" >"$B/run-two-objects/two.sh"
+broken="unknown-key unknown-section key-before-section no-equals set-twice no-check empty uses-and-run neither unknown-uses no-match bad-match bad-tools no-prompt run-missing run-outside run-crashes run-not-json run-two-objects"
 
 out=$(dispatch "$B" "$(probe b1 anything)")
 expect "the healthy cue still fires" "healthy says hi" "$out"
