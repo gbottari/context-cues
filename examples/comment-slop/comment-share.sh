@@ -9,6 +9,7 @@ MIN_COMMENT=5
 MIN_CODE=5
 MIN_SHARE=30
 MAX_BYTES=1048576
+MAX_HEAD_AGE_SECONDS=60
 
 command -v cloc >/dev/null 2>&1 || exit 1
 payload=$(cat)
@@ -34,9 +35,7 @@ cd "$top" || exit 1
 git rev-parse -q --verify HEAD >/dev/null || exit 1
 # A commit that failed, such as one a pre-commit hook rejected behind a `| tail` that hides
 # its status, leaves an older HEAD: someone else's work, not this call's.
-max_head_age_seconds=60
-head_age=$(($(date +%s) - $(git log -1 --format=%ct HEAD)))
-[ "$head_age" -le "$max_head_age_seconds" ] || exit 1
+[ $(($(date +%s) - $(git log -1 --format=%ct HEAD))) -le "$MAX_HEAD_AGE_SECONDS" ] || exit 1
 
 # A first commit has no parent, so it is compared with the empty tree.
 base=$(git rev-parse -q --verify 'HEAD~1' 2>/dev/null) || base=$(git hash-object -t tree /dev/null)
