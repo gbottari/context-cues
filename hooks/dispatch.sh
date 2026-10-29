@@ -296,7 +296,7 @@ write_targets() {
 		ns = split($0, seg, /[|;&]/)
 		for (s = 1; s <= ns; s++) {
 			nw = split(seg[s], w, /[ \t]+/)
-			mode = ""; next_is_target = 0
+			takes_files = 0; next_is_target = 0
 			for (i = 1; i <= nw; i++) {
 				t = w[i]
 				if (t == "") continue
@@ -306,11 +306,11 @@ write_targets() {
 					if (r == "") next_is_target = 1; else emit(r)
 					continue
 				}
-				if (mode != "") { if (t !~ /^-/) emit(t); continue }
-				if (t ~ /(^|\/)tee$/) { mode = "tee"; continue }
+				if (takes_files) { if (t !~ /^-/) emit(t); continue }
+				if (t ~ /(^|\/)tee$/) { takes_files = 1; continue }
 				if (t ~ /(^|\/)(sed|perl)$/) {
 					# -i as an option word: -i, -i.bak, -pi, -Ei, --in-place; not -MFile::Find
-					for (k = i + 1; k <= nw; k++) if (w[k] ~ /^-[a-zA-Z]*i([^a-zA-Z]|$)/ || w[k] ~ /^--in-place/) { mode = "in-place"; break }
+					for (k = i + 1; k <= nw; k++) if (w[k] ~ /^-[a-zA-Z]*i([^a-zA-Z]|$)/ || w[k] ~ /^--in-place/) { takes_files = 1; break }
 				}
 			}
 		}
