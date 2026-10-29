@@ -80,6 +80,11 @@ expect "same key, same session" - "$(dispatch "$R" "$(probe r1 ann)")"
 expect "another key, same session" "Hello bob" "$(dispatch "$R" "$(probe r1 bob)")"
 expect "exit 1 keeps it silent" - "$(dispatch "$R" "$(probe r2 skip)")"
 expect "exit 1 is not an error" 0 "$(log_lines runner)"
+# A run file not named .sh runs as its own program, here awk, which bash would refuse.
+cue "$R" direct "$(printf '[check]\nrun = check.awk\n')" 'Hello ${WHO}.'
+printf '#!/usr/bin/awk -f\nBEGIN { print "{\\"vars\\": {\\"WHO\\": \\"awk\\"}}" }\n' >"$R/direct/check.awk"
+chmod +x "$R/direct/check.awk"
+expect "a run file not named .sh runs as its own program" "Hello awk." "$(dispatch "$R" "$(probe r3 skip)")"
 
 # --- file-write with match: only text the call adds, by an editing tool or a Bash write ---
 F=$work/file-write

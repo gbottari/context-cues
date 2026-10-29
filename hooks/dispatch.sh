@@ -379,15 +379,13 @@ check() {
 # hook before the step is logged and spent, and silence the cues after it.
 RUN_SECONDS=5
 run_step() {
-	local script=$CUES_DIR/$cue/${S_RUN[$1]} out rc tmp pid dog
+	local script=$CUES_DIR/$cue/${S_RUN[$1]} runner out rc tmp pid dog
 	case ${S_RUN[$1]} in /* | *..*) ERR="run must name a file inside the cue folder"; return 2 ;; esac
 	[ -f "$script" ] || { ERR="run: ${S_RUN[$1]} not found"; return 2; }
 	tmp=$(mktemp -d "${TMPDIR:-/tmp}/context-cues.XXXXXX")
 	printf '%s' "$payload" >"$tmp/in"
-	case $script in
-	*.sh) CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue bash "$script" <"$tmp/in" >"$tmp/out" 2>"$tmp/err" & ;;
-	*) CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue "$script" <"$tmp/in" >"$tmp/out" 2>"$tmp/err" & ;;
-	esac
+	case $script in *.sh) runner=(bash "$script") ;; *) runner=("$script") ;; esac
+	CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue "${runner[@]}" <"$tmp/in" >"$tmp/out" 2>"$tmp/err" &
 	pid=$!
 	# The watchdog must not hold the hook's stdout open, or Claude Code waits for it. Killing
 	# the watchdog does not reach its sleep, so the watchdog's trap ends the sleep itself.
