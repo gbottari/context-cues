@@ -36,6 +36,8 @@ In Claude Code:
 /plugin install context-cues --marketplace gbottari/context-cues
 ```
 
+The plugin installs the hooks and the `context-cue` skill, and no cues. Each cue you add is a folder under `~/.claude/context-cues/`.
+
 To try it, ask Claude Code in any git repository: "make a context cue that reminds you to check which branch you are on, the first time you run `git status`." Once the cue is installed, ask it to run `git status` twice: the agent gets the reminder after the first run and nothing after the second.
 
 See more: [installing from your shell, without the plugin, or an example cue by hand](docs/install.md).
@@ -130,7 +132,7 @@ Values run raw to the end of the line, so patterns need no escaping. Comments ar
 
 ## ⏱️ Cost
 
-No tokens until a cue fires. One hook process starts after each call of a tool some cue checks (Bash, PowerShell, the file-editing tools, Agent and Skill); Read, Grep and Glob start nothing. Measured inside Claude Code on Linux, it adds about 5 ms to such a call with no cues installed, and about 17 ms to a Bash call with the five examples. [`docs/performance.md`](docs/performance.md) has the measurements.
+No tokens until a cue fires. One hook process starts after each call of a tool some cue checks (Bash, PowerShell, the file-editing tools, Agent and Skill); Read, Grep and Glob start nothing. Measured inside Claude Code on Linux, it adds about 5 ms to such a call with no cues installed, and about 17 ms to a Bash call with five of the examples installed. [`docs/performance.md`](docs/performance.md) has the measurements.
 
 ## ⚙️ How it works
 
