@@ -10,5 +10,7 @@ payload=$(cat)
 src=$(printf '%s' "$payload" | jq -r '.source // empty')
 case "$src" in compact|clear) ;; *) exit 0 ;; esac
 sid=$(printf '%s' "$payload" | jq -r '.session_id // empty')
-[ -n "$sid" ] && rm -rf -- "${MARK_ROOT:?}/${sid:?}"
+# the session ids dispatch.sh refuses, so the folder removed is one of its own
+case $sid in "" | */* | .*) exit 0 ;; esac
+rm -rf -- "${MARK_ROOT:?}/${sid:?}"
 exit 0

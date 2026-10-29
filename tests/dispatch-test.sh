@@ -306,6 +306,9 @@ rearm ra compact
 expect "compact re-arms" "one says hi" "$(dispatch "$T" "$(probe ra go)")"
 rearm ra clear
 expect "clear re-arms" "one says hi" "$(dispatch "$T" "$(probe ra go)")"
+mkdir -p "$work/marks/other-app"
+rearm ../other-app compact
+expect "a session id with a slash removes nothing beside the marker folder" yes "$([ -d "$work/marks/other-app" ] && echo yes)"
 
 # dispatch runs inside $( ), where fail() cannot count, so its stderr is checked once here
 n=$((n + 1))
