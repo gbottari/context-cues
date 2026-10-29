@@ -32,6 +32,9 @@ esac
 top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || exit 1
 cd "$top" || exit 1
 git rev-parse -q --verify HEAD >/dev/null || exit 1
+# A commit that failed, such as one a pre-commit hook rejected behind a `| tail` that hides
+# its status, leaves an older HEAD: someone else's work, not this call's.
+[ $(($(date +%s) - $(git log -1 --format=%ct HEAD))) -le 60 ] || exit 1
 
 # A first commit has no parent, so it is compared with the empty tree.
 base=$(git rev-parse -q --verify 'HEAD~1' 2>/dev/null) || base=$(git hash-object -t tree /dev/null)
