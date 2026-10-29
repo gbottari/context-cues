@@ -105,11 +105,12 @@ for dir in "$@"; do
 	want=() label=() setup=() says=() session=() payload=()
 	script=$(jq -r "$CASES" "$dir/tests.json") || { fail "tests.json does not parse"; continue; }
 	eval "$script"
-	k=0
+	k=0 fired_cases=0
 	while [ $k -lt ${#want[@]} ]; do
 		case_dir=$work/$name/dirs/${session[k]}
 		mkdir -p "$case_dir"
 		case ${want[k]} in fired | silent) ;; *) fail "want must be fired or silent: ${label[k]}" && k=$((k + 1)) && continue ;; esac
+		[ "${want[k]}" = fired ] && fired_cases=$((fired_cases + 1))
 		if [ -n "${setup[k]}" ] && ! (cd "$case_dir" && bash -c "${setup[k]}") >"$work/setup.log" 2>&1; then
 			fail "setup failed: ${label[k]}: $(tr '\n' ' ' <"$work/setup.log" | cut -c1-300)"
 			k=$((k + 1))
@@ -134,6 +135,8 @@ for dir in "$@"; do
 		fi
 		k=$((k + 1))
 	done
+	# a cue whose trigger never matches passes every silent case
+	[ $fired_cases -gt 0 ] || fail "no case wants fired, so nothing shows the cue can fire"
 	[ $cue_failures -eq 0 ] && printf '%s: ok (%s cases)\n' "$name" "${#want[@]}"
 done
 [ $failures -eq 0 ]

@@ -10,7 +10,7 @@ Context Cues are Claude Code hooks that inject one piece of guidance the first t
 | `hooks/` | the plugin, or `~/.claude/hooks/context-cues/` by hand | `dispatch.sh` (the one PostToolUse hook, reading every cue folder), `rearm.sh` (SessionStart re-arm), `command-position.sh` (sourced by the dispatcher), `hooks.json` (registers both hooks for the plugin) |
 | `skills/context-cue/` | the plugin, or `~/.claude/skills/context-cue/` by hand | The skill: `SKILL.md`, `scripts/cue-test.sh` (runs a cue folder's `tests.json` through the dispatcher), `references/trigger-design.md` |
 | `examples/` | `~/.claude/context-cues/`, optional | One cue folder per kind of check: `cue.ini`, `prompt.md`, `tests.json`, and any run-step script |
-| `tests/` | not installed | `dispatch-test.sh` for the dispatcher itself; `run.sh` runs it and every example's `tests.json` |
+| `tests/` | not installed | `dispatch-test.sh` for the dispatcher itself, `cue-test-test.sh` for the skill's `cue-test.sh`; `run.sh` runs both and every example's `tests.json` |
 | `docs/` | not installed | `install.md`, every way to install beyond the README's plugin command; measurements behind the README's cost claims |
 
 ## Rules
