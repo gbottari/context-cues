@@ -213,6 +213,17 @@ started=$(date +%s)
 dispatch "$R" "$(probe h2 quick)" >/dev/null
 expect "a run step that finishes leaves nothing holding the hook open" yes "$([ $(($(date +%s) - started)) -lt 3 ] && echo yes)"
 
+# The watchdog's sleep ends with the hook: a sleep on PATH that records its pid shows whether
+# one is still running once the hook returns.
+mkdir -p "$work/shim"
+printf '#!/usr/bin/env bash\necho $$ >>"%s"\nexec "%s" "$@"\n' "$work/sleeps" "$(command -v sleep)" >"$work/shim/sleep"
+chmod +x "$work/shim/sleep"
+PATH=$work/shim:$PATH dispatch "$R" "$(probe h3 quick)" >/dev/null
+expect "the watchdog runs its sleep" 1 "$(wc -l <"$work/sleeps" | tr -d ' ')"
+left=''
+while read -r p; do kill -0 "$p" 2>/dev/null && left="$left $p"; done <"$work/sleeps"
+expect "a run step that finishes leaves no watchdog sleep running" - "$left"
+
 # The tool filter joins every cue's tools into one pattern, so it must leave out a broken one.
 G=$work/bad-tools-alone
 cue "$G" healthy "$ok"

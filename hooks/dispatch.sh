@@ -392,8 +392,15 @@ run_step() {
 	*) CUE_NAME=$cue CUE_SESSION_ID=$session CUE_DIR=$CUES_DIR/$cue "$script" <"$tmp/in" >"$tmp/out" 2>"$tmp/err" & ;;
 	esac
 	pid=$!
-	# The watchdog must not hold the hook's stdout open, or Claude Code waits for it.
-	{ sleep $RUN_SECONDS && kill "$pid" && : >"$tmp/timed-out"; } >/dev/null 2>&1 &
+	# The watchdog must not hold the hook's stdout open, or Claude Code waits for it. Killing
+	# the watchdog does not reach its sleep, so the watchdog's trap ends the sleep itself.
+	{
+		nap=''
+		trap '[ -z "$nap" ] || { kill "$nap"; wait "$nap"; }; exit' TERM
+		sleep $RUN_SECONDS &
+		nap=$!
+		wait "$nap" && kill "$pid" && : >"$tmp/timed-out"
+	} >/dev/null 2>&1 &
 	dog=$!
 	# Each killed job is reaped by a wait with stderr closed, because bash 3.2 reports a job
 	# killed by a signal on stderr, which the hook must keep empty.
