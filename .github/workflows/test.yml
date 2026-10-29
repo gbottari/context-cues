@@ -15,7 +15,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install cloc, which the comment-slop example needs
         run: |
           case "$RUNNER_OS" in
@@ -39,7 +39,7 @@ jobs:
     # Fix locally with: npx prettier@3.9.10 --write '**/*.md'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Prettier check
         run: npx --yes prettier@3.9.10 --check '**/*.md'
 
@@ -48,7 +48,7 @@ jobs:
     # which an install by name needs. Run `claude plugin validate .` locally for the full check.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Plugin manifests
         run: |
           jq -e '.name and .version and .description' .claude-plugin/plugin.json
