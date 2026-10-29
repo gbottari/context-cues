@@ -471,4 +471,4 @@ done
 [ -n "$text" ] || exit 0
 # A prompt.md saved with CRLF line endings, and a prompt filled in by jq on Windows, both
 # carry \r; the agent gets plain line breaks.
-jq -n --arg t "${text//$'\r'/}" '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$t}}'
+jq -n --arg t "$text" '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:($t | gsub("\r"; ""))}}'
