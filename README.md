@@ -80,7 +80,7 @@ Ask: _"In repos with no remote, don't offer to push."_ After the first commit in
 
 ## ⚠️ Limits
 
-- **The cue arrives just after the first act, not before it.** Claude Code delivers hook context beside the tool result, even from a `PreToolUse` hook.
+- **The cue arrives just after the first act, not before it.** A hook's text reaches the agent together with the tool's result, so the first matching act runs before the agent reads the cue.
 - **Claude Code caps hook output at 10,000 characters**, about 25 times the longest example cue. Past that it shows a 2,000-character preview, so guidance that long belongs in a doc the cue points to.
 
 ## 📐 Cue specification
