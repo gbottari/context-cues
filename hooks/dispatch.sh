@@ -312,7 +312,8 @@ write_targets() {
 				if (mode != "") { if (t !~ /^-/) emit(t); continue }
 				if (t ~ /(^|\/)tee$/) { mode = "tee"; continue }
 				if (t ~ /(^|\/)(sed|perl)$/) {
-					for (k = i + 1; k <= nw; k++) if (index(w[k], "-i")) { mode = "in-place"; break }
+					# -i as an option word: -i, -i.bak, -pi, -Ei, --in-place; not -MFile::Find
+					for (k = i + 1; k <= nw; k++) if (w[k] ~ /^-[a-zA-Z]*i([^a-zA-Z]|$)/ || w[k] ~ /^--in-place/) { mode = "in-place"; break }
 				}
 			}
 		}

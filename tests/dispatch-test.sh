@@ -120,6 +120,10 @@ aw "an append" "notes says hi" a2 'echo hi >> notes.md'
 aw "a quoted target" "notes says hi" a3 "echo hi > 'notes.md'"
 aw "tee, the file second" "notes says hi" a4 'echo hi | tee -a log.txt notes.md'
 aw "sed -i" "notes says hi" a5 "sed -i 's/a/b/' notes.md"
+aw "sed -Ei" "notes says hi" a9 "sed -Ei 's/a+/b/' notes.md"
+aw "sed --in-place=.bak" "notes says hi" a10 "sed --in-place=.bak 's/a/b/' notes.md"
+aw "perl -pi.bak" "notes says hi" a11 "perl -pi.bak -e 's/a/b/' notes.md"
+aw "-i inside a sed script is no option" - a12 "sed -n 's/-i//p' notes.md"
 aw "a longer path" - a6 'echo hi > old-notes.md'
 aw "the file only read" - a7 'cat notes.md > copy.txt'
 aw "2>&1 is no target" - a8 'make 2>&1 | grep notes.md'

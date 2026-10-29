@@ -8,6 +8,7 @@
   { "want": "fired", "label": "bash append to a bare AGENTS.md", "command": "echo 'Run the tests.' >>AGENTS.md" },
   { "want": "fired", "label": "tee into a bare AGENTS.md", "command": "echo 'Run the tests.' | tee AGENTS.md" },
   { "want": "fired", "label": "tee -a, the doc second", "command": "printf 'x\\n' | tee -a notes.txt skills/foo/SKILL.md" },
+  { "want": "fired", "label": "perl -pi on AGENTS.md", "command": "perl -pi -e 's/a/b/' AGENTS.md" },
   { "want": "fired", "label": "bash heredoc into a relative rules file", "command": "cat > .claude/rules/tests.md <<EOF\nRun the tests.\nEOF" },
 
   {"want": "silent", "label": "a README that names SKILL.md", "tool": "Write", "input": {"file_path": "/p/README.md", "content": "Edit skills/foo/SKILL.md to change it."}},
@@ -16,6 +17,8 @@
   { "want": "silent", "label": "Read a SKILL.md", "tool": "Read", "input": { "file_path": "/p/skills/foo/SKILL.md" } },
   { "want": "silent", "label": "Edit that only removes a line", "tool": "Edit", "input": { "file_path": "/p/AGENTS.md", "old_string": "# Repo\nOld line.", "new_string": "# Repo" } },
   { "want": "silent", "label": "cat a SKILL.md", "command": "cat skills/foo/SKILL.md", "response": "---\nname: foo\n---\n" },
+  { "want": "silent", "label": "sed -n reads a skill whose folder holds -i", "command": "sed -n '1,80p' skills/gb-inbox/SKILL.md" },
+  { "want": "silent", "label": "perl -ne reads a CLAUDE.md under a folder holding -i", "command": "perl -ne 'print if /x/' /home/u/code/api-io/CLAUDE.md" },
   { "want": "silent", "label": "copy AGENTS.md out", "command": "cat AGENTS.md > /tmp/agents-copy.txt" },
   { "want": "silent", "label": "a note that names AGENTS.md", "command": "echo 'see AGENTS.md' > notes.txt" },
 
