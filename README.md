@@ -146,4 +146,6 @@ A cue fires again after `/compact` or `/clear`, when its text has been lost: `re
 
 A cue that is broken, such as one with a pattern that does not compile, stays silent and is named in `$XDG_RUNTIME_DIR/context-cues/errors.log`. The other cues keep working.
 
+Context Cues makes no network calls; beside the markers it keeps only a cache of the parsed `cue.ini` files, and each run step gets a temporary folder that it removes.
+
 _Written with [Claude Code](https://claude.com/claude-code) and reviewed by the author._
