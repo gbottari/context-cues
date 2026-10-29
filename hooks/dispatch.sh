@@ -100,11 +100,11 @@ done
 [ ${#files[@]} -gt 0 ] || exit 0
 cache="$MARK_ROOT/parsed${CUES_DIR//\//_}"
 code=''
-if [ -z "$unreadable" ] && [ -f "$cache" ] && [ "${BASH_SOURCE[0]}" -ot "$cache" ]; then
+if [ -z "$unreadable" ] && [ -f "$cache" ] && [ "$cache" -nt "${BASH_SOURCE[0]}" ]; then
 	IFS= read -r first <"$cache"
 	if [ "$first" = "# ${files[*]}" ]; then
 		code=cached
-		for ini in "${files[@]}"; do [ "$ini" -ot "$cache" ] || { code=''; break; }; done
+		for ini in "${files[@]}"; do [ "$cache" -nt "$ini" ] || { code=''; break; }; done
 	fi
 fi
 n=0 wanted='' any='' fields=''
@@ -284,7 +284,7 @@ field_value() {
 # trim and dedupe lines, dropping blank ones
 norm() { sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' | sort -u; }
 keep() { if [ -n "$1" ]; then grep -E -- "($1)"; else cat; fi; }
-may_write_files() { case $1 in *'>'* | *tee* | *sed* | *perl*) return 0 ;; esac; return 1; }
+may_write_files() { local re='>|tee|sed|perl'; [[ $1 =~ $re ]]; }
 
 # write_targets: prints the files the Bash command writes, one per line, so a path pattern
 # sees each one whole, the way it sees an Edit's file_path: redirect targets, tee's file
