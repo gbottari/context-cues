@@ -284,6 +284,7 @@ field_value() {
 # trim and dedupe lines, dropping blank ones
 norm() { sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' | sort -u; }
 keep() { if [ -n "$1" ]; then grep -E -- "($1)"; else cat; fi; }
+may_write_files() { case $1 in *'>'* | *tee* | *sed* | *perl*) return 0 ;; esac; return 1; }
 
 # write_targets: prints the files the Bash command writes, one per line, so a path pattern
 # sees each one whole, the way it sees an Edit's file_path: redirect targets, tee's file
@@ -346,8 +347,7 @@ check() {
 			[ -z "$was" ] || grep -qvxF -f <(printf '%s\n' "$was") <<<"$new"
 		elif tool_is Bash; then
 			[ -n "$x" ] && has_line "$x" "$cmd" && return 1
-			# most commands write nothing, and those skip the awk run; the rest run it once
-			case $cmd in *'>'* | *tee* | *sed* | *perl*) ;; *) return 1 ;; esac
+			may_write_files "$cmd" || return 1
 			[ -n "$targets_read" ] || { targets=$(write_targets <<<"$cmd"); targets_read=1; }
 			writes_path "$p" "$x" "$targets" || return 1
 			[ -z "$m" ] || has_line "($m)" "$cmd"
