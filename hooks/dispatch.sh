@@ -12,7 +12,14 @@
 set -u
 case ${BASH_SOURCE[0]} in */*) HERE=${BASH_SOURCE[0]%/*} ;; *) HERE=. ;; esac
 CUES_DIR=${CONTEXT_CUES_DIR:-$HOME/.claude/context-cues}
-MARK_ROOT="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/context-cues"
+# Markers and the parse cache, which this script sources, must be this user's alone: in a
+# shared /tmp another user could create the folder first and plant the cache. Without
+# XDG_RUNTIME_DIR the folder is named for the user, and the hook runs only when it is a real
+# directory the user owns.
+if [ -n "${XDG_RUNTIME_DIR:-}" ]; then MARK_ROOT=$XDG_RUNTIME_DIR/context-cues; else MARK_ROOT=${TMPDIR:-/tmp}/context-cues-$UID; fi
+# shellcheck disable=SC2174  # only the marker folder itself has to be private
+[ -d "$MARK_ROOT" ] || mkdir -p -m 700 "$MARK_ROOT" 2>/dev/null
+[ -d "$MARK_ROOT" ] && [ ! -L "$MARK_ROOT" ] && [ -O "$MARK_ROOT" ] || exit 0
 ERROR_LOG="$MARK_ROOT/errors.log"
 FILE_TOOLS='Edit|Write|MultiEdit|NotebookEdit'
 
@@ -60,7 +67,7 @@ valid_re() {
 	[[ x =~ $re ]] 2>/dev/null
 	[ $? -ne 2 ]
 }
-spend() { mkdir -p "$MARK_ROOT/$sid" && : >"$MARK_ROOT/$sid/$1"; }
+spend() { { mkdir -p "$MARK_ROOT/$sid" && : >"$MARK_ROOT/$sid/$1"; } 2>/dev/null; }
 fail_cue() {
 	mkdir -p "$MARK_ROOT" && printf '%s %s: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$2" >>"$ERROR_LOG"
 	spend "$1"
@@ -397,7 +404,8 @@ for cue in "${live[@]}"; do
 		mark=$cue
 		[ -n "$key" ] && mark=$(key_mark "$key")
 		[ -e "$MARK_ROOT/$sid/$mark" ] && continue
-		spend "$mark"
+		# a cue that cannot be marked spent would fire on every call
+		spend "$mark" || continue
 		if [ "$cue_vars" = '{}' ]; then
 			t=$(cat "$CUES_DIR/$cue/prompt.md")
 		else

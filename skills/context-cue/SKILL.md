@@ -74,7 +74,7 @@ A value runs raw to the end of the line, so a pattern needs no quoting or escapi
 ## Reference
 
 - **Payload fields** (`code.claude.com/docs/en/hooks.md`): every event carries `session_id`; `SessionStart` carries `source` ∈ `startup|resume|clear|compact|fork`; a tool event carries `tool_name`, `tool_input`, `tool_response` and `cwd`. `additionalContext` from `PreToolUse` or `PostToolUse` arrives beside the tool result, so a cue lands just after the act.
-- **A broken cue** (a pattern that does not compile, an unknown key, a missing `prompt.md`, a run step that exits 2 or more) stays silent, and its line in `$XDG_RUNTIME_DIR/context-cues/errors.log` names it. The other cues are unaffected. `cue-test.sh` fails on any line there.
+- **A broken cue** (a pattern that does not compile, an unknown key, a missing `prompt.md`, a run step that exits 2 or more) stays silent, and its line in `$XDG_RUNTIME_DIR/context-cues/errors.log` names it (`$TMPDIR/context-cues-<uid>/errors.log` when `XDG_RUNTIME_DIR` is unset). The other cues are unaffected. `cue-test.sh` fails on any line there.
 - **Re-arming.** `rearm.sh` clears a session's markers on `compact` and `clear`, the two moments injected context is lost, so every cue can fire once more.
 - **Subagents** share the parent's `session_id` but not its context, and their calls carry their own `agent_id`. The dispatcher keeps each subagent's markers apart, so every subagent gets each cue once in its own context, whether or not the parent has seen it. A run step's `CUE_SESSION_ID` is the parent's `session_id` in both.
 - **Output cap** is 10,000 characters per hook; longer text is spilled to a file and replaced by a preview of the first 2,000 characters. A cue that needs more keeps its text in a doc and points to it.

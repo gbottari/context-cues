@@ -205,6 +205,28 @@ expect "a session id with a slash" - "$(dispatch "$T" "$(probe ../x go)")"
 expect "no cues folder" - "$(dispatch "$work/nowhere" "$(probe e1 go)")"
 expect "a payload that is not JSON" - "$(dispatch "$T" 'not json')"
 
+# --- with XDG_RUNTIME_DIR unset, the markers and the parse cache go in a folder of this
+# user's own under TMPDIR, never a shared one another user could create first ---
+U=$work/tmpdir
+mkdir -p "$U"
+# dispatch_tmpdir <tmpdir> <cues dir> <payload>: dispatch with XDG_RUNTIME_DIR unset
+dispatch_tmpdir() {
+	printf '%s' "$3" | env -u XDG_RUNTIME_DIR TMPDIR="$1" CONTEXT_CUES_DIR="$2" bash "$repo/hooks/dispatch.sh" 2>>"$work/stderr" |
+		jq -r '.hookSpecificOutput.additionalContext' | tr -d '\r'
+}
+expect "no XDG_RUNTIME_DIR: fires" "one says hi" "$(dispatch_tmpdir "$U" "$T" "$(probe u1 go)")"
+expect "no XDG_RUNTIME_DIR: once per session" - "$(dispatch_tmpdir "$U" "$T" "$(probe u1 go)")"
+expect "the marker is in this user's own folder" yes "$([ -O "$U/context-cues-$UID" ] && [ -e "$U/context-cues-$UID/u1/one" ] && echo yes)"
+expect "no shared folder" - "$([ -e "$U/context-cues" ] && echo shared)"
+V=$work/tmpdir-planted
+mkdir -p "$V" "$work/planted"
+ln -s "$work/planted" "$V/context-cues-$UID" 2>/dev/null
+# Git Bash may copy instead of linking, which leaves nothing to refuse
+if [ -L "$V/context-cues-$UID" ]; then
+	expect "a symlinked marker folder is refused" - "$(dispatch_tmpdir "$V" "$T" "$(probe u2 go)")"
+	expect "nothing is written through it" - "$(ls -A "$work/planted")"
+fi
+
 # --- subagents: a subagent's call carries its parent's session_id and its own agent_id,
 # and each subagent gets the cues once in its own context ---
 # sub <session> <agent id> <q>: a call made inside a subagent, keys in Claude Code's order
